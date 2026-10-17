@@ -110,8 +110,8 @@ Per person, per month (from `config.example.toml`):
 
 | Bucket | Amount | Kind |
 |---|---|---|
-| Weekday (Mon–Fri) | RM100 per week | weekly target with carry-over |
-| Weekend (Sat–Sun) | RM200 per weekend | weekly target with carry-over |
+| Weekday (Mon–Fri) | RM20 a day (RM100 a full week) | weekly target with carry-over |
+| Weekend (Sat–Sun) | RM100 a day (RM200 a full weekend) | weekly target with carry-over |
 | Extra | RM300 | monthly cap |
 | Grocery | RM200 | monthly cap |
 | Chu Chu / Toiletries | RM60 | monthly cap |
@@ -123,10 +123,10 @@ Per person, per month (from `config.example.toml`):
 
 <img src="dashboard/web/duit/assets/sprites/chuchu/idle-00.png" alt="" width="64" align="right">
 
-- **Weekly buckets:** every week starts from its target. What you saved or overspent earlier in the month
-  carries into this week: **can spend = target + carry-over**, never below RM0. The carry-over resets on the 1st.
-  Weeks cut off by the start or end of a month get a share by days (Thursday–Friday is RM40; a lone Saturday is
-  RM100).
+- **Weekly buckets:** the budget is set per day, and a week's target is the daily amount times its days in
+  the month (a full week is RM100 weekdays and RM200 weekend; Thursday–Friday is RM40; a lone Saturday is
+  RM100). What you saved or overspent earlier in the month carries into this week: **can spend = target +
+  carry-over**, never below RM0. The carry-over resets on the 1st.
 - **Pace:** each bar is **on track** (green), **ahead of pace** (yellow, spending faster than the month or week
   is passing) or **over budget** (red).
 - **Balance:** whoever paid is owed the other person's share. Settle-ups clear it.
@@ -218,8 +218,8 @@ telegram_id = 123456789          # the sender is matched by ID, never by display
 
 [buckets.weekday]
 label = "Weekday"
-kind = "weekly"                  # weekly: amount per full week, carry-over within the month
-amount = 100
+kind = "weekly"                  # weekly: amount per day; a week's target = amount x its days
+amount = 20                      # RM100 for a full Mon-Fri
 days = [0, 1, 2, 3, 4]           # 0 = Monday … 6 = Sunday
 
 [buckets.house]
@@ -231,14 +231,17 @@ auto_paid = ["vanisa"]           # marked Paid automatically each month
 [rules]
 alert_at = [0.8, 1.0]            # warn at 80% and when a cap is passed
 ask_extra_over = 100             # an everyday spend share above this asks "Everyday or Extra?"
-# tracking_start = "2026-10-17"  # when tracking began, if mid-month
-# before_start = "maxed"          # earlier weekday/weekend days: "maxed" = on budget, "ignore" = prorate
+# tracking_start = "2026-10-17"  # optional, if you start mid-month without backfilling (see below)
+# before_start = "maxed"          # days before it: "maxed" = on budget, "ignore" = prorate
 categories = ["Food", "Groceries", "Leisure", "Sport", "Transport", …]
 ```
 
-Bucket kinds are `weekly`, `monthly` (a plain cap) and `fixed`. If you start tracking mid-month,
-`before_start = "maxed"` counts the weekday/weekend days before `tracking_start` as exactly on budget, so the
-empty first half of the month doesn't turn into savings. You can also change a budget from the chat:
+Bucket kinds are `weekly`, `monthly` (a plain cap) and `fixed`.
+
+**Starting mid-month:** run `python -m duit backfill 2026-10-01 2026-10-16` to add "Before tracking"
+placeholder spends worth exactly the daily budget for those days, so the empty first half of the month
+doesn't turn into savings. It's safe to re-run, and the placeholders stay out of Top places. Alternatively, set
+`tracking_start` with `before_start = "maxed"`. You can also change a budget from the chat:
 `plan: grocery 250`, `vanisa petrol 150`. That changes the month's plan, and later months copy it forward.
 
 ### Environment variables
@@ -278,6 +281,7 @@ empty first half of the month doesn't turn into savings. You can also change a b
 .venv/bin/python -m duit json              # the full status as JSON
 .venv/bin/python -m duit check             # integrity checks (exit 1 on a problem)
 .venv/bin/python -m duit backup            # online backup to data/backups/ (keeps 30)
+.venv/bin/python -m duit backfill 2026-10-01 2026-10-16   # on-budget placeholders before tracking began
 
 .venv/bin/python eval/run.py               # the parsing test set against the live agent
 .venv/bin/python eval/run.py -k split      # only cases matching "split"
@@ -346,6 +350,7 @@ duit/                  the ledger (stdlib only)
   tools.py               the agent's tools: JSON schemas, amount checks, split maths, audit
   textcheck.py           which numbers in a message can be money
   integrity.py           `duit check` and `duit backup`
+  backfill.py            on-budget placeholders for days before tracking began
 hermes/
   plugin/duit/           Hermes plugin: the tools (toolset `duit`) and gateway hooks
   SOUL.md                the agent's rules
