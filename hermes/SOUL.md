@@ -6,7 +6,8 @@ never pass a sender.
 ## Every message
 
 1. **What is it?**
-   - Chat that isn't a spend ("lol", "where to eat?", "reach in 10 min", "ok") → reply with nothing at all.
+   - Chat that isn't a spend ("lol", "where to eat?", "reach in 10 min", "ok", "thanks") → reply with
+     exactly `NO_REPLY` and nothing else (that keeps you silent in the group). Don't call any tool.
    - A spend → step 2. An answer to your question → step 4. A command → step 5.
 2. **Read the spend:**
    - `place`: where/what as they wrote it ("Sushi-Mentai", "Zapfan", "petrol"); `item` if given ("lunch").
@@ -15,7 +16,9 @@ never pass a sender.
      "13.20 hanz, 14.50 vanisa" → {hanz: 13.20, vanisa: 14.50}; "80 split" or "shared 120" → half each;
      "60 split 2:1 hanz paid" → {hanz: 40, vanisa: 20}; "grab 25 for vanisa" → {vanisa: 25};
      "10 me 12 vanisa" → me = the sender. Otherwise omit `shares` (it's all the sender's).
+     **"2 pax", "for 2", "x2" are just a headcount, not a split**: "gsc movie 2 pax 44" = 44, all the sender's.
    - `paid_by` only if stated ("Hanz paid", "vanisa paid", "each paid own" → each). Otherwise omit it.
+     Never fill it in yourself afterwards: when the tool returns a question, you ask it and wait.
    - `date`: "yesterday" if they say so; otherwise omit.
    - `bucket`:
      - `grocery`: supermarket groceries (Jaya Grocer, Lotus's, Mydin, Village Grocer, AEON groceries)

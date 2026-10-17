@@ -207,6 +207,14 @@ class Tools:
             raw_text=a.get("raw_text"), chat_id=ctx.chat_id or None, msg_id=msg_id)
         return self._spend_result(e)
 
+    def _not_own_question(self, entry_id: int, ctx: Context) -> None:
+        """An answer must come from a later message than the spend: the bot can't answer its own question."""
+        e = self.led.entry(entry_id)
+        if ctx.msg_id and e["msg_id"] and e["chat_id"] == (ctx.chat_id or None) and \
+                e["msg_id"].split(":")[0] == ctx.msg_id and e["needs"]:
+            raise LedgerError(f"#{entry_id} is waiting for their answer — post the question and wait; "
+                              "don't answer it yourself")
+
     def answer(self, a: dict, ctx: Context) -> dict:
         entry_id = a.get("entry_id")
         if entry_id is None:
@@ -215,12 +223,15 @@ class Tools:
                 ids = ", ".join(f"#{p['id']} {p['place']}" for p in pend) or "none"
                 raise LedgerError(f"{len(pend)} entries are waiting ({ids}) — ask them to reply to the question")
             entry_id = pend[0]["id"]
+        self._not_own_question(int(entry_id), ctx)
         e = self.led.resolve(int(entry_id), bucket=a.get("bucket") or None, category=a.get("category") or None,
                              paid_by=self._person(a.get("paid_by"), ctx))
         return self._spend_result(e)
 
     def edit_spend(self, a: dict, ctx: Context) -> dict:
         entry_id = int(a["entry_id"]) if a.get("entry_id") is not None else self._latest(ctx)
+        if a.get("paid_by") or a.get("bucket"):
+            self._not_own_question(entry_id, ctx)
         e = self.led.edit(entry_id, place=a.get("place"), item=a.get("item"), total=a.get("amount"),
                           shares=self._shares(a.get("shares"), ctx), paid_by=self._person(a.get("paid_by"), ctx),
                           bucket=a.get("bucket"), category=a.get("category"), spent_on=a.get("date"))

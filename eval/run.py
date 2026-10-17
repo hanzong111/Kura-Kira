@@ -100,7 +100,7 @@ def check(c: dict, led: Ledger, before_ids: set[int], reply: str, seeded: dict |
     if kind in ("ignore", "ask", "status"):
         if new:
             fails.append(f"logged {len(new)} entr{'y' if len(new) == 1 else 'ies'} but should not")
-        if kind == "ignore" and reply and len(reply) > 2:
+        if kind == "ignore" and reply.strip() not in ("", "NO_REPLY", "[SILENT]"):
             fails.append(f"replied to chatter: {reply[:60]!r}")
         if kind in ("ask", "status") and not reply:
             fails.append("no reply")

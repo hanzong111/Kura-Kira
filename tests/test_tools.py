@@ -80,7 +80,7 @@ def test_unsorted_question_options(tools):
                    VANISA)
     assert r["question"]["options"] == ["Everyday (weekday/weekend)", "Extra", "Other"]
     assert r["reply"] == "✅ #1 Decathlon · ❓ Unsorted · RM120.00 · Vanisa"
-    tools.call("duit_answer", {"bucket": "daily", "category": "Sport"}, VANISA)
+    tools.call("duit_answer", {"bucket": "daily", "category": "Sport"}, ctx("vanisa", 50))
     assert tools.call("duit_lookup_place", {"name": "decathlon"}, VANISA)["place"]["category"] == "Sport"
 
 
@@ -150,3 +150,14 @@ def test_plugin_registers_and_reads_session_env(monkeypatch, tmp_path):
     monkeypatch.setenv("HERMES_SESSION_USER_ID", "42")
     out = json.loads(registered["duit_log_spend"]({"place": "x", "amount": 1}))
     assert "isn't from Hanz or Vanisa" in out["error"]
+
+
+def test_bot_cannot_answer_its_own_question(tools):
+    r = tools.call("duit_log_spend", {"place": "Jaya Grocer", "amount": 120, "shares": {"hanz": 60, "vanisa": 60},
+                                      "bucket": "grocery"}, VANISA)
+    assert r["needs"] == ["payer"]
+    for name, args in (("duit_answer", {"entry_id": 1, "paid_by": "vanisa"}),
+                       ("duit_edit_spend", {"entry_id": 1, "paid_by": "vanisa"})):
+        out = tools.call(name, args, VANISA)  # same message as the spend
+        assert "don't answer it yourself" in out["error"]
+    assert tools.call("duit_answer", {"entry_id": 1, "paid_by": "vanisa"}, ctx("vanisa", 99))["needs"] == []
