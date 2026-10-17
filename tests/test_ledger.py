@@ -296,3 +296,37 @@ def test_several_spends_in_one_message(ledger):
     b = ledger.log_spend(sender="hanz", place="Petrol", total=50, bucket="petrol", chat_id="g", msg_id="7:2")
     assert a["id"] != b["id"] and not b["duplicate"]
     assert ledger.find_by_message("7")["id"] in (a["id"], b["id"])
+
+
+def test_before_start_maxed(cfg, clock):
+    """Days before tracking began count as exactly on budget: full targets, no carry-over from them."""
+    from dataclasses import replace
+    from datetime import date
+
+    from duit import db
+    from duit.ledger import Ledger
+    led = Ledger(db.connect(":memory:"), replace(cfg, tracking_start=date(2026, 10, 17), before_start="maxed"), clock)
+    led.log_spend(sender="hanz", place="Old lunch", total=50, bucket="weekday", spent_on="2026-10-15")  # pre-start: ignored
+    led.log_spend(sender="hanz", place="Cafe", total=44, bucket="daily")                                # Sat 17th
+    b = led.status()["people"]["hanz"]["buckets"]
+    assert (b["weekday"]["cap"], b["weekday"]["spent"], b["weekday"]["assumed"]) == (44000, 24000, 24000)
+    assert (b["weekend"]["cap"], b["weekend"]["spent"], b["weekend"]["assumed"]) == (90000, 40000 + 4400, 40000)
+    wk = b["weekend"]["week"]
+    assert (wk["target"], wk["carry"], wk["allowance"], wk["spent"]) == (20000, 0, 20000, 4400)
+    clock.set("2026-10-19T12:00")   # first tracked weekday week: clean RM100
+    wd = led.status()["people"]["hanz"]["buckets"]["weekday"]["week"]
+    assert (wd["target"], wd["carry"], wd["allowance"], wd["assumed"]) == (10000, 0, 10000, 0)
+
+
+def test_before_start_maxed_mid_week(cfg, clock):
+    """Start on a Wednesday: Mon-Tue of that week are assumed spent (2/5 of RM100), the rest is live."""
+    from dataclasses import replace
+    from datetime import date
+
+    from duit import db
+    from duit.ledger import Ledger
+    clock.set("2026-10-21T12:00")
+    led = Ledger(db.connect(":memory:"), replace(cfg, tracking_start=date(2026, 10, 21), before_start="maxed"), clock)
+    led.log_spend(sender="hanz", place="Lunch", total=15, bucket="daily")
+    wk = led.status()["people"]["hanz"]["buckets"]["weekday"]["week"]
+    assert (wk["assumed"], wk["spent"], wk["allowance"], wk["left"]) == (4000, 5500, 10000, 4500)

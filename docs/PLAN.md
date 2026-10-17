@@ -31,6 +31,8 @@ plus fixed RM1,300 per person.
   `tracking_start`) get a share by days (Thu-Fri = RM40, a lone Saturday = RM100). Under/overspend in the earlier
   weeks of the month carries into this week: **can spend = target + carry-over**, never below 0. Resets each month.
   The bot and dashboard always show all three: target, carry-over (saved / overspent), can spend.
+- **Starting mid-month:** `rules.tracking_start` + `before_start = "maxed"` count the earlier weekday/weekend days as
+  exactly on budget (full monthly targets, pre-start share assumed spent, no carry-over). `"ignore"` prorates instead.
 - **Pace:** spent / cap compared with how far through the month (or week) we are: ok / ahead / over.
 - **Alerts:** at 80% and when a cap is exceeded (week scope for weekday/weekend, month scope otherwise).
 - **Balance:** payer is owed the other person's share; settle-ups (`vanisa paid hanz 86.30`) clear it and never touch

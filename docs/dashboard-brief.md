@@ -49,7 +49,9 @@ Build the local web dashboard for Kura-Kira, the couple spending tracker in this
      (RM100/RM200), `carry` (+ saved / − overspent in earlier weeks of the month, yellow when negative) and
      `allowance` (= can spend = target + carry, never below 0), then the bar of `spent` against `allowance`,
      with `left`. The monthly weekday/weekend bar is `spent` against `cap` (the sum of that month's week
-     targets).
+     targets). When tracking started mid-month with `before_start = "maxed"`, `assumed` (on the bucket
+     and on `week`) is the part of `spent` counted as on budget before tracking began: show it as a hatched
+     segment of the bar labelled "before tracking".
    - "This month": the total, then bars for extra, grocery, chuchu, petrol, toll and parents
    - House/Car stamps; Vanisa is always PAID, Hanz is DUE until paid
    - an Unsorted chip

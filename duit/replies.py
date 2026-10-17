@@ -34,7 +34,8 @@ def week_phrase(cfg: Config, st: dict) -> str:
         budget += f" − {fmt(-w['carry'], c)} overspent = {fmt(w['allowance'], c)}"
     end = (f"over by {fmt(-w['left'], c)} {DOT['over']}" if w["left"] < 0
            else f"{fmt(w['left'], c)} left {DOT[w['status']]}")
-    return f"{span}: {budget} · spent {fmt(w['spent'], c)} · {end}"
+    before = f" (incl. {fmt(w['assumed'], c)} before tracking began)" if w.get("assumed") else ""
+    return f"{span}: {budget} · spent {fmt(w['spent'], c)}{before} · {end}"
 
 
 def left_phrase(cfg: Config, st: dict, spent_on: str) -> str:

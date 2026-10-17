@@ -77,7 +77,8 @@ auto_paid = ["vanisa"]
 [rules]
 alert_at = [0.8, 1.0]          # warn when a person's bucket crosses these fractions
 ask_extra_over = 100           # a daily spend share above this -> ask "weekday/weekend or Extra?"
-# tracking_start = "2026-11-01"  # optional: days before this don't count towards weekly targets
+# tracking_start = "2026-11-01"  # optional: when tracking began
+# before_start = "ignore"         # pre-start weekday/weekend days: "ignore" (prorate) or "maxed" (on budget)
 
 # Descriptive labels for the spending table (not budgets).
 categories = ["Food", "Groceries", "Leisure", "Sport", "Transport", "Housing",

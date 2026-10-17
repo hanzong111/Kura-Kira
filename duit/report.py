@@ -72,32 +72,53 @@ def bucket_status(conn: sqlite3.Connection, cfg: Config, month: str, person: str
 def _weekly_status(conn: sqlite3.Connection, cfg: Config, month: str, person: str, b, target: int,
                    today: date) -> dict:
     """Weekday/weekend: each week has a fixed target; what's under/over in earlier weeks of the month
-    carries into this week ("can spend" = target + carry-over, never below 0). Resets every month."""
-    weeks = month_weeks(month, b.days, target, cfg.tracking_start)
-    counted = [w for w in weeks if w.days]
+    carries into this week ("can spend" = target + carry-over, never below 0). Resets every month.
+
+    Days before `tracking_start` either don't exist for budgeting (`before_start = "ignore"`: partial
+    targets from the start date) or count as exactly on budget (`"maxed"`: full targets, the pre-start
+    share assumed spent, no carry-over from them). Spends logged for pre-start days are not counted.
+    """
     first, last = month_bounds(month)
-    begin = counted[0].a if counted else first
+    start = cfg.tracking_start if cfg.tracking_start and cfg.tracking_start > first else None
+    maxed = start is not None and cfg.before_start == "maxed"
+    weeks = month_weeks(month, b.days, target, None if maxed else start)
+    begin = max(first, start) if start else first
+
+    def actual(a: date, z: date) -> int:
+        a = max(a, begin)
+        return spent(conn, person, b.key, a, z) if a <= z else 0
+
+    def assumed(w) -> int:
+        if not maxed or not w.days:
+            return 0
+        pre = count_days(w.a, min(w.b, start - timedelta(days=1)), b.days) if w.a < start else 0
+        return w.target * pre // w.days
+
+    counted = [w for w in weeks if w.days]
     cap = sum(w.target for w in counted)
-    used = spent(conn, person, b.key, begin, last)
+    pre_total = sum(assumed(w) for w in counted)
+    used = actual(first, last) + pre_total
     # elapsed share of the month's target, by bucket days (so a weekend bar isn't "ahead" on a Monday)
+    m0 = counted[0].a if counted else first
     total_days = sum(w.days for w in counted)
-    done_days = count_days(begin, min(today, last), b.days) if today >= begin else 0
+    done_days = count_days(m0, min(today, last), b.days) if today >= m0 else 0
     elapsed = (done_days / total_days if total_days else 1.0) if today <= last else 1.0
     out = {"bucket": b.key, "label": b.label, "kind": b.kind, "target": target, "cap": cap, "spent": used,
-           "left": cap - used, "pct": round(used / cap, 4) if cap else (0.0 if used == 0 else None),
+           "assumed": pre_total, "left": cap - used,
+           "pct": round(used / cap, 4) if cap else (0.0 if used == 0 else None),
            "status": pace_status(used, cap, elapsed)}
 
     i = week_of(weeks, today) if first <= today <= last else None
     if i is not None and weeks[i].days:
         w = weeks[i]
-        carry = sum(x.target - spent(conn, person, b.key, x.a, x.b) for x in weeks[:i] if x.days)
+        carry = sum(x.target - assumed(x) - actual(x.a, x.b) for x in weeks[:i] if x.days)
         can_spend = max(w.target + carry, 0)
-        this_week = spent(conn, person, b.key, w.a, w.b)
+        this_week = assumed(w) + actual(w.a, w.b)
         days_elapsed = count_days(w.a, min(today, w.b), b.days)
         out["week"] = {"start": w.start.isoformat(), "end": w.end.isoformat(),
                        "in_month_start": w.a.isoformat(), "in_month_end": w.b.isoformat(),
                        "target": w.target, "carry": carry, "allowance": can_spend,
-                       "spent": this_week, "left": can_spend - this_week,
+                       "spent": this_week, "assumed": assumed(w), "left": can_spend - this_week,
                        "days": w.days, "days_elapsed": days_elapsed,
                        "status": pace_status(this_week, can_spend, days_elapsed / w.days)}
     return out

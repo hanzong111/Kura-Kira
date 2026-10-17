@@ -42,7 +42,8 @@ class Config:
     categories: tuple[str, ...]
     alert_at: tuple[float, ...] = (0.8, 1.0)
     ask_extra_over_sen: int = 10000
-    tracking_start: date | None = None  # days before this don't count towards weekly targets
+    tracking_start: date | None = None  # when tracking began (weekly budgets only)
+    before_start: str = "ignore"         # pre-start days: "ignore" (prorate from start) or "maxed" (on budget)
 
     @property
     def tz(self) -> ZoneInfo:
@@ -93,7 +94,14 @@ def parse(data: dict) -> Config:
         alert_at=tuple(rules.get("alert_at", (0.8, 1.0))),
         ask_extra_over_sen=parse_amount(rules.get("ask_extra_over", 100)),
         tracking_start=_date(rules.get("tracking_start")),
+        before_start=_before_start(rules.get("before_start", "ignore")),
     )
+
+
+def _before_start(v: str) -> str:
+    if v not in ("ignore", "maxed"):
+        raise ValueError(f"rules.before_start must be 'ignore' or 'maxed', got {v!r}")
+    return v
 
 
 def _date(v) -> date | None:
