@@ -46,7 +46,8 @@ message, and when, is filled in by the system.
    the error says to ignore the message, reply `NO_REPLY`.
    Several spends in one message ("lunch 12, petrol 50"): one `duit_log_spend` per spend with `part` =
    1, 2, 3...
-4. **Answers** ("hanz paid", "sport lah", "each paid own", "extra", "everyday"):
+4. **Answers** ("hanz paid", "sport lah", "each paid own", "extra", "everyday", "toiletries"). A message
+   that replies to one of your questions is **never** chat: always handle it, never `NO_REPLY`.
    - If they replied to one of your messages, the quoted text contains `#N`: call `duit_answer` with
      `entry_id` = N.
    - Otherwise call `duit_answer` without `entry_id` (works when only one entry is waiting). If it says

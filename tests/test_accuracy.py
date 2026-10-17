@@ -253,3 +253,55 @@ def test_paying_for_someone_else_still_works(tools, ledger):
     tools.call("duit_log_spend", {"place": "Grab", "amount": 25, "for_person": "vanisa", "paid_by": "hanz",
                                   "bucket": "daily"}, msg("grab 25 for vanisa, hanz paid", sender="vanisa"))
     assert ledger.entry(1)["shares"] == {"vanisa": 2500} and ledger.balance()["owes"]["to"] == "hanz"
+
+
+# ---- answers to the bot's questions are applied by code -------------------------------------------------
+@pytest.mark.parametrize("reply,needs,options,expected", [
+    ("Toiletries , rememebr watson = toiletries", ["bucket"], ["chuchu", "daily", "extra"],
+     {"bucket": "chuchu", "category": "Toiletries"}),
+    ("extra", ["bucket"], ["daily", "extra"], {"bucket": "extra"}),
+    ("everyday la", ["bucket"], ["daily", "extra"], {"bucket": "daily"}),
+    ("sport lah, for badminton", ["bucket"], ["daily", "extra"], None),          # unclear -> the model
+    ("hanz paid", ["payer"], None, {"paid_by": "hanz"}),
+    ("each paid own", ["payer"], None, {"paid_by": "each"}),
+    ("I paid", ["payer"], None, {"paid_by": "vanisa"}),                          # sender is Vanisa
+    ("i think hanz paid?", ["payer"], None, None),                               # ambiguous -> the model
+])
+def test_interpret_answers(cfg, reply, needs, options, expected):
+    from duit.answers import interpret
+    entry = {"needs": needs, "bucket_options": options, "deleted_at": None}
+    assert interpret(cfg, entry, reply, "vanisa") == expected
+
+
+def test_plugin_applies_answer_in_code_and_reasks_on_silence(plugin, monkeypatch):
+    mod, hooks, tools_ = plugin
+    tools = mod._get_tools()
+    log = tools.call("duit_log_spend", {"place": "watson", "amount": "RM 74", "category": "Shopping",
+                                        "bucket_options": ["chuchu", "daily", "extra"]},
+                     Context(sender_telegram_id="111", chat_id="g", msg_id="18", text="watson RM 74"))
+    question = log["question"]["text"]
+
+    class Src:
+        user_id, chat_id = "111", "g"
+
+    class Answer:
+        message_id, text, raw_message, source = "77", "Toiletries , remember watson = toiletries", None, Src()
+        reply_to_is_own_message, reply_to_text = True, question
+
+    hooks["pre_gateway_dispatch"](event=Answer())
+    e = tools.led.entry(1)
+    assert (e["bucket"], e["category"], e["needs"]) == ("chuchu", "Toiletries", [])
+    final = hooks["transform_llm_output"](response_text="NO_REPLY")       # the model said nothing useful
+    assert final.startswith("✅ #1 watson · Chu Chu / Toiletries · RM74.00")
+    assert tools.led.lookup_place("Watsons")["bucket"] == "chuchu"          # remembered
+
+    # an unclear reply the model also ignores -> code re-asks instead of a Hermes warning
+    log2 = tools.call("duit_log_spend", {"place": "Decathlon", "amount": "120", "bucket_options": ["daily", "extra"]},
+                      Context(sender_telegram_id="111", chat_id="g", msg_id="19", text="decathlon 120"))
+
+    class Unclear(Answer):
+        message_id, text, reply_to_text = "78", "hmm not sure", log2["question"]["text"]
+
+    hooks["pre_gateway_dispatch"](event=Unclear())
+    monkeypatch.setenv("HERMES_SESSION_MESSAGE_ID", "78")
+    assert hooks["transform_llm_output"](response_text="NO_REPLY").startswith("Sorry, I didn't catch that. @Hanz #2")

@@ -25,6 +25,7 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from duit import config, db  # noqa: E402
+from duit import answers, replies  # noqa: E402
 from duit.tools import Context, Tools, chat_lines, specs  # noqa: E402
 
 _lock = threading.Lock()
@@ -73,7 +74,9 @@ def _handler(name):
             result = _get_tools().call(name, params, ctx)
             turn = _turns.get(ctx.msg_id) or {"lines": [], "refused": False}
             if result.get("error"):
-                turn["refused"] = True
+                turn["refused"] = turn["refused"] or not turn.get("answered")
+            elif turn.get("answered") and name == "duit_answer":
+                pass  # code already applied this answer before the model saw the message
             elif not (result.get("duplicate") and turn["lines"]):
                 turn["lines"].extend(chat_lines(result))
             _remember(_turns, ctx.msg_id, turn)
@@ -82,16 +85,49 @@ def _handler(name):
 
 
 def _on_dispatch(event=None, **_):
-    """Keep the message as the user sent it, before anything else touches it."""
+    """Keep the message as the user sent it, and apply clear answers to the bot's questions in code."""
     try:
         msg_id = getattr(event, "message_id", None)
-        if msg_id:
-            raw = getattr(event, "raw_message", None)
-            _remember(_messages, str(msg_id), {"text": getattr(event, "text", None),
-                                               "sent_at": getattr(raw, "date", None)})
+        if not msg_id:
+            return None
+        msg_id = str(msg_id)
+        raw = getattr(event, "raw_message", None)
+        quoted = getattr(event, "reply_to_text", None) if getattr(event, "reply_to_is_own_message", False) else None
+        _remember(_messages, msg_id, {"text": getattr(event, "text", None), "sent_at": getattr(raw, "date", None),
+                                      "quoted": quoted})
+        if quoted:
+            _answer_in_code(event, msg_id, quoted)
     except Exception:
         pass
-    return None  # observe only
+    return None  # never blocks or rewrites the message
+
+
+def _answer_in_code(event, msg_id: str, quoted: str) -> None:
+    """A reply to the bot's '#N ...?' question whose words match exactly one option: apply it here."""
+    entry_id = answers.referenced_entry(quoted)
+    source = getattr(event, "source", None)
+    if entry_id is None or source is None:
+        return
+    tools = _get_tools()
+    person = tools.cfg.person_by_telegram(int(getattr(source, "user_id", 0) or 0))
+    if person is None:
+        return
+    chat_id = str(getattr(source, "chat_id", "") or "")
+    with _lock:
+        try:
+            entry = tools.led.entry(entry_id)
+        except Exception:
+            return
+        if entry.get("chat_id") != chat_id:
+            return  # not this group's entry
+        args = answers.interpret(tools.cfg, entry, getattr(event, "text", "") or "", person.key)
+        if args is None:
+            return  # unclear: the model handles it
+        ctx = Context(sender_telegram_id=str(source.user_id), chat_id=chat_id, msg_id=msg_id,
+                      text=getattr(event, "text", None))
+        result = tools.call("duit_answer", {"entry_id": entry_id, **args}, ctx)
+        if not result.get("error"):
+            _remember(_turns, msg_id, {"lines": chat_lines(result), "refused": False, "answered": True})
 
 
 def _on_pre_llm(user_message=None, **_):
@@ -101,10 +137,28 @@ def _on_pre_llm(user_message=None, **_):
     return None
 
 
+def _reask(msg_id: str) -> str | None:
+    """The model went silent on a reply to the bot's question: ask it again (code-written)."""
+    quoted = _messages.get(msg_id, {}).get("quoted")
+    entry_id = answers.referenced_entry(quoted)
+    if entry_id is None:
+        return None
+    tools = _get_tools()
+    try:
+        q = replies.question(tools.cfg, tools.led.entry(entry_id))
+    except Exception:
+        return None
+    return f"Sorry, I didn't catch that. {q['text']}" if q else None
+
+
 def _on_output(response_text=None, **_):
-    turn = _turns.pop(_session("HERMES_SESSION_MESSAGE_ID"), None)
+    msg_id = _session("HERMES_SESSION_MESSAGE_ID")
+    turn = _turns.pop(msg_id, None)
     if not turn or not turn["lines"]:
-        return None  # nothing from the ledger: keep the model's words (a question, or NO_REPLY)
+        said = (response_text or "").strip()
+        if said in ("", "NO_REPLY", "[SILENT]"):
+            return _reask(msg_id)  # None (stay silent) unless they were answering the bot
+        return None  # nothing from the ledger: keep the model's words (a question)
     lines = list(turn["lines"])
     said = (response_text or "").strip()
     if turn["refused"] and said not in ("", "NO_REPLY", "[SILENT]"):
