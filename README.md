@@ -1,4 +1,4 @@
-# Kira
+# Kura-Kira
 
 Spending tracker for two. **Kura-Kira**, a Hermes agent, sits in a Telegram group; whenever one of us spends money we
 post it (`Sushi-Mentai (food) : 56.50`, `zapfan, lunch, RM13.20 hanz, 14.50 vanisa, Hanz paid`) and the
