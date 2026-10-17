@@ -422,13 +422,14 @@ class Ledger:
 
     def find_by_message(self, msg_id: str, chat_id: str | None = None) -> dict | None:
         """Entry for a chat message: either the original spend or the bot's question about it."""
-        params: list = [str(msg_id), str(msg_id)]
+        # several spends in one message are logged as msg_id, msg_id:2, msg_id:3 ...
+        params: list = [str(msg_id), f"{msg_id}:%", str(msg_id)]
         chat_sql = ""
         if chat_id is not None:
             chat_sql = " AND chat_id=?"
             params.append(str(chat_id))
-        row = self.conn.execute(f"SELECT id FROM entries WHERE (msg_id=? OR question_msg_id=?){chat_sql} "
-                                "ORDER BY id DESC LIMIT 1", params).fetchone()
+        row = self.conn.execute(f"SELECT id FROM entries WHERE (msg_id=? OR msg_id LIKE ? OR question_msg_id=?)"
+                                f"{chat_sql} ORDER BY id DESC LIMIT 1", params).fetchone()
         return self.entry(row["id"]) if row else None
 
     # ---- settle-ups & fixed bills -----------------------------------------------------------------

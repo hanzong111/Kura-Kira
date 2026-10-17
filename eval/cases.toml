@@ -1,0 +1,289 @@
+# Parsing test set: real-style group messages and what the ledger must end up with.
+# The eval sends each message to the agent (fresh ledger per case unless `after` is set) and checks the
+# resulting entry. Fields under `expect` are checked only when present.
+#
+# expect.kind:
+#   "spend"   - one entry logged; check place/amount/shares/paid_by/bucket/category/needs
+#   "ask"     - nothing logged; the agent must ask (e.g. amount missing)
+#   "ignore"  - not a spend; nothing logged and no reply needed
+#   "answer"  - resolves the pending entry created by the `after` case
+#   "fixed"   - marks a fixed bill paid
+#   "settle"  - records a settle-up
+#   "status"  - read-only question; nothing logged
+# bucket "daily" means weekday or weekend, whichever matches today's date.
+# place is matched loosely (case/spaces/punctuation ignored, either contains the other).
+
+# ---- the formats from the plan -----------------------------------------------------------------
+[[case]]
+id = "colon-amount"
+sender = "hanz"
+text = "lunch : RM56.50"
+expect = { kind = "spend", place = "lunch", amount = 56.50, shares = { hanz = 56.50 }, paid_by = "hanz", bucket = "daily", category = "Food" }
+
+[[case]]
+id = "place-category-parens"
+sender = "hanz"
+text = "Sushi-Mentai ( food ) : 56.50"
+expect = { kind = "spend", place = "Sushi-Mentai", amount = 56.50, paid_by = "hanz", bucket = "daily", category = "Food" }
+
+[[case]]
+id = "comma-separated"
+sender = "vanisa"
+text = "sushimentai , food , 26.20"
+expect = { kind = "spend", place = "sushi mentai", amount = 26.20, shares = { vanisa = 26.20 }, paid_by = "vanisa", bucket = "daily", category = "Food" }
+
+[[case]]
+id = "split-with-payer"
+sender = "hanz"
+text = "zapfan , lunch , RM13.20 hanz , 14.50 vanisa , Hanz paid"
+expect = { kind = "spend", place = "zapfan", amount = 27.70, shares = { hanz = 13.20, vanisa = 14.50 }, paid_by = "hanz", bucket = "daily", category = "Food" }
+
+[[case]]
+id = "split-no-payer"
+sender = "vanisa"
+text = "zapfan lunch 13.20 hanz 14.50 vanisa"
+expect = { kind = "spend", amount = 27.70, shares = { hanz = 13.20, vanisa = 14.50 }, needs = ["payer"], asked = true }
+
+[[case]]
+id = "split-even"
+sender = "hanz"
+text = "sushi mentai 80 split, vanisa paid"
+expect = { kind = "spend", amount = 80, shares = { hanz = 40, vanisa = 40 }, paid_by = "vanisa", bucket = "daily" }
+
+[[case]]
+id = "split-ratio"
+sender = "vanisa"
+text = "dinner 60 split 2:1 hanz paid"
+expect = { kind = "spend", amount = 60, shares = { hanz = 40, vanisa = 20 }, paid_by = "hanz" }
+
+[[case]]
+id = "for-other-person"
+sender = "hanz"
+text = "grab 25 for vanisa, hanz paid"
+expect = { kind = "spend", amount = 25, shares = { vanisa = 25 }, paid_by = "hanz", category = "Transport" }
+
+[[case]]
+id = "shared-no-payer"
+sender = "vanisa"
+text = "jaya grocer 120 shared"
+expect = { kind = "spend", amount = 120, shares = { hanz = 60, vanisa = 60 }, bucket = "grocery", needs = ["payer"], asked = true }
+
+[[case]]
+id = "each-paid-own"
+sender = "hanz"
+text = "mamak 10 me 12 vanisa, each paid own"
+expect = { kind = "spend", amount = 22, shares = { hanz = 10, vanisa = 12 }, paid_by = "each" }
+
+# ---- purpose buckets ---------------------------------------------------------------------------
+[[case]]
+id = "grocery"
+sender = "vanisa"
+text = "jaya grocer 86"
+expect = { kind = "spend", amount = 86, bucket = "grocery" }
+
+[[case]]
+id = "cat-food"
+sender = "hanz"
+text = "whiskas + litter 45"
+expect = { kind = "spend", amount = 45, bucket = "chuchu", category = "Pet" }
+
+[[case]]
+id = "chuchu-vet"
+sender = "vanisa"
+text = "chu chu vet 80"
+expect = { kind = "spend", amount = 80, bucket = "chuchu" }
+
+[[case]]
+id = "toiletries"
+sender = "vanisa"
+text = "watsons shampoo 18"
+expect = { kind = "spend", amount = 18, bucket = "chuchu", category = "Toiletries" }
+
+[[case]]
+id = "petrol"
+sender = "hanz"
+text = "petronas 80"
+expect = { kind = "spend", amount = 80, bucket = "petrol", category = "Transport" }
+
+[[case]]
+id = "petrol-word"
+sender = "vanisa"
+text = "petrol 50"
+expect = { kind = "spend", amount = 50, bucket = "petrol" }
+
+[[case]]
+id = "toll"
+sender = "hanz"
+text = "toll 6.40"
+expect = { kind = "spend", amount = 6.40, bucket = "toll" }
+
+[[case]]
+id = "tng-toll-reload"
+sender = "hanz"
+text = "tng reload for toll 50"
+expect = { kind = "spend", amount = 50, bucket = "toll" }
+
+[[case]]
+id = "parents"
+sender = "vanisa"
+text = "parents 500"
+expect = { kind = "spend", amount = 500, bucket = "parents", category = "Family" }
+
+[[case]]
+id = "explicit-extra"
+sender = "hanz"
+text = "new shoes 250 extra"
+expect = { kind = "spend", amount = 250, bucket = "extra", category = "Shopping" }
+
+# ---- everyday spending -------------------------------------------------------------------------
+[[case]]
+id = "sport"
+sender = "hanz"
+text = "badminton court 30"
+expect = { kind = "spend", amount = 30, bucket = "daily", category = "Sport" }
+
+[[case]]
+id = "leisure"
+sender = "vanisa"
+text = "gsc movie 2 pax 44"
+expect = { kind = "spend", amount = 44, bucket = "daily", category = "Leisure" }
+
+[[case]]
+id = "coffee-no-rm"
+sender = "vanisa"
+text = "zus coffee 12.9"
+expect = { kind = "spend", amount = 12.90, bucket = "daily", category = "Food" }
+
+[[case]]
+id = "rm-prefix-space"
+sender = "hanz"
+text = "nasi lemak rm 8"
+expect = { kind = "spend", amount = 8, bucket = "daily", category = "Food" }
+
+[[case]]
+id = "yesterday"
+sender = "hanz"
+text = "yesterday dinner 40"
+expect = { kind = "spend", amount = 40, date = "yesterday", category = "Food" }
+
+[[case]]
+id = "big-daily-asks-extra"
+sender = "vanisa"
+text = "uniqlo 180"
+expect = { kind = "spend", amount = 180, asked = true }
+note = "share over RM100 on an everyday bucket: the bot should ask Weekday/Weekend or Extra"
+
+# ---- unclear -> ask ----------------------------------------------------------------------------
+[[case]]
+id = "ambiguous-bucket"
+sender = "vanisa"
+text = "decathlon 120"
+expect = { kind = "spend", amount = 120, asked = true }
+
+[[case]]
+id = "watsons-unclear"
+sender = "vanisa"
+text = "watsons 75"
+expect = { kind = "spend", amount = 75, asked = true }
+
+[[case]]
+id = "missing-amount"
+sender = "hanz"
+text = "sushi mentai"
+expect = { kind = "ask" }
+
+[[case]]
+id = "shares-dont-add-up"
+sender = "hanz"
+text = "zapfan 27.70 hanz 13.20 vanisa 12.00 hanz paid"
+expect = { kind = "ask" }
+
+# ---- answers to questions ----------------------------------------------------------------------
+[[case]]
+id = "answer-payer"
+after = "split-no-payer"
+sender = "hanz"
+text = "hanz paid"
+reply_to_bot = true
+expect = { kind = "answer", paid_by = "hanz" }
+
+[[case]]
+id = "answer-bucket-casual"
+after = "ambiguous-bucket"
+sender = "vanisa"
+text = "sport lah, for badminton"
+reply_to_bot = true
+expect = { kind = "answer", bucket = "daily", category = "Sport" }
+
+[[case]]
+id = "answer-each"
+after = "shared-no-payer"
+sender = "vanisa"
+text = "each paid own"
+reply_to_bot = true
+expect = { kind = "answer", paid_by = "each" }
+
+# ---- fixed bills, settle-ups, status, edits ----------------------------------------------------
+[[case]]
+id = "house-paid"
+sender = "hanz"
+text = "house paid"
+expect = { kind = "fixed", person = "hanz", bills = ["house"] }
+
+[[case]]
+id = "house-and-car-paid"
+sender = "hanz"
+text = "house + car paid"
+expect = { kind = "fixed", person = "hanz", bills = ["house", "car"] }
+
+[[case]]
+id = "settle"
+sender = "vanisa"
+text = "vanisa paid hanz 14.50"
+expect = { kind = "settle", from = "vanisa", to = "hanz", amount = 14.50 }
+
+[[case]]
+id = "how-are-we"
+sender = "vanisa"
+text = "how are we doing?"
+expect = { kind = "status" }
+
+[[case]]
+id = "how-much-left"
+sender = "hanz"
+text = "how much left for weekend?"
+expect = { kind = "status" }
+
+[[case]]
+id = "undo"
+after = "petrol"
+sender = "hanz"
+text = "undo"
+expect = { kind = "deleted" }
+
+[[case]]
+id = "fix-amount"
+after = "petrol"
+sender = "hanz"
+text = "wrong, should be 85"
+reply_to_bot = true
+expect = { kind = "edited", amount = 85 }
+
+# ---- not spends --------------------------------------------------------------------------------
+[[case]]
+id = "chat-lol"
+sender = "vanisa"
+text = "lol"
+expect = { kind = "ignore" }
+
+[[case]]
+id = "chat-where-eat"
+sender = "hanz"
+text = "where to eat tonight?"
+expect = { kind = "ignore" }
+
+[[case]]
+id = "chat-number-not-spend"
+sender = "vanisa"
+text = "reach in 10 min"
+expect = { kind = "ignore" }

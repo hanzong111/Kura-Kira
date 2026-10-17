@@ -265,3 +265,10 @@ def test_balance_over_a_mixed_month(ledger, clock):
     b = ledger.balance()
     assert b["owes"] == {"from": "hanz", "to": "vanisa", "amount": 2050}
     assert sum(b["net"].values()) == 0
+
+
+def test_several_spends_in_one_message(ledger):
+    a = ledger.log_spend(sender="hanz", place="Lunch", total=12, bucket="daily", chat_id="g", msg_id="7")
+    b = ledger.log_spend(sender="hanz", place="Petrol", total=50, bucket="petrol", chat_id="g", msg_id="7:2")
+    assert a["id"] != b["id"] and not b["duplicate"]
+    assert ledger.find_by_message("7")["id"] in (a["id"], b["id"])

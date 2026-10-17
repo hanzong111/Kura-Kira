@@ -84,20 +84,23 @@ def question(cfg: Config, e: dict) -> dict | None:
     """What to ask in the group for a pending entry, or None if nothing is missing."""
     c = cfg.currency
     who = [cfg.people[p].name for p in e["shares"]]
-    what = f"{e['place']} {fmt(e['total_sen'], c)}"
+    what = f"#{e['id']} {e['place']} {fmt(e['total_sen'], c)}"
     if len(e["shares"]) > 1:
         what += " (" + " · ".join(f"{cfg.people[p].name} {fmt(a, c)}" for p, a in e["shares"].items()) + ")"
     if "payer" in e["needs"]:
         tag = sorted(set(who) | {cfg.people[e["sender"]].name})
         options = [p.name for p in cfg.people.values()] + ["Each paid own"]
         return {"entry_id": e["id"], "asks": "payer", "tag": tag,
-                "text": f"{' '.join('@' + t for t in tag)} {what}: who paid?", "options": options}
+                "text": f"{' '.join('@' + t for t in tag)} {what}: who paid?\nReply: {' / '.join(options)}",
+                "options": options}
     if "bucket" in e["needs"]:
         opts = e.get("bucket_options") or ["daily", "extra"]
         labels = ["Everyday (weekday/weekend)" if o == "daily" else cfg.buckets[o].label for o in opts
                   if o == "daily" or o in cfg.buckets]
+        labels += ["Other"]
         return {"entry_id": e["id"], "asks": "bucket", "tag": [cfg.people[e["sender"]].name],
-                "text": f"@{cfg.people[e['sender']].name} {what}: which one?", "options": labels + ["Other…"]}
+                "text": f"@{cfg.people[e['sender']].name} {what}: which one?\nReply: {' / '.join(labels)}",
+                "options": labels}
     return None
 
 

@@ -1,6 +1,6 @@
-# duit
+# Kira
 
-Spending tracker for two. A Hermes agent sits in a Telegram group; whenever one of us spends money we
+Spending tracker for two. **Kura-Kira**, a Hermes agent, sits in a Telegram group; whenever one of us spends money we
 post it (`Sushi-Mentai (food) : 56.50`, `zapfan, lunch, RM13.20 hanz, 14.50 vanisa, Hanz paid`) and the
 agent records it against our monthly plan. A pixel-themed dashboard shows combined and per-person progress.
 
@@ -12,9 +12,9 @@ does all the maths: totals, weekly allowances, pace, balances. The model never a
 | Step | Part | State |
 |---|---|---|
 | 1 | Ledger + tests (`duit/`) | done |
-| 2 | MCP tools for the agent (`duit/server.py`) | done |
-| 3 | Parsing test set; check sender ID reaches the agent | next |
-| 4 | Hermes `duit` profile + Telegram group | |
+| 2 | Agent tools as a Hermes plugin (`duit/tools.py`, `hermes/plugin/duit`) | done |
+| 3 | Parsing test set (`eval/`) + agent rules (`hermes/SOUL.md`) | built; needs a Codex login to run |
+| 4 | Hermes `kura-kira` profile + Telegram group | profile created; Telegram next |
 | 5 | Cron: alerts, Sunday recap, month-end report | |
 | 6 | Trial week | |
 | 7 | Dashboard (Kopitiam pixel theme) | |
@@ -31,7 +31,10 @@ duit/db.py       SQLite schema
 duit/ledger.py   all writes: log_spend, resolve, edit, undo, settle, pay_fixed, set_plan
 duit/report.py   all reads: bucket status, pace, balance, paid totals, pending questions
 duit/replies.py  chat text (confirmations, questions, alerts, status) built from ledger numbers
-duit/server.py   MCP server (stdio): the only tools the agent gets
+duit/tools.py    the agent's tools: JSON schemas + dispatcher; sender/chat/message come from the gateway
+hermes/plugin/   Hermes plugin that registers the tools (toolset `duit`)
+hermes/SOUL.md   the agent's rules
+eval/            parsing test set run against the real agent
 ```
 
 ## Run
@@ -40,17 +43,17 @@ duit/server.py   MCP server (stdio): the only tools the agent gets
 cp config.example.toml config.toml   # then fill in Telegram user IDs
 ./scripts/test.sh -q                 # creates .venv on first run
 .venv/bin/python -m duit status      # month overview in the terminal
-.venv/bin/python -m duit.server      # MCP server on stdio (Hermes launches this)
+.venv/bin/python eval/run.py         # parsing test set against the live agent
 ```
 
-Hermes profile config (step 4):
+Hermes profile `kura-kira` (in `~/.hermes/profiles/kura-kira/`):
 
-```yaml
-mcp_servers:
-  duit:
-    command: /home/zyzh/duit/.venv/bin/python
-    args: ["-m", "duit.server"]
-    env: {PYTHONPATH: /home/zyzh/duit}
-```
+- `plugins/duit` -> symlink to `hermes/plugin/duit`, enabled with `plugins.enabled: [duit]`
+- `SOUL.md` -> symlink to `hermes/SOUL.md`
+- `platform_toolsets: {telegram: [duit], cli: [duit]}` so the bot has the ledger tools and nothing else
+- model `openai-codex` (`hermes -p kura-kira auth add openai-codex` to log in)
+
+Why a plugin and not MCP: Hermes doesn't show the model the sender's Telegram ID or the message ID,
+but plugin tools can read them from the gateway's session context. So the sender is never chosen by the model.
 
 Data lives in `data/duit.db` (gitignored). Override with `DUIT_DB` / `DUIT_CONFIG`.

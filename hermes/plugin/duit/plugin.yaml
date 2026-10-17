@@ -1,0 +1,4 @@
+name: duit
+version: 0.1.0
+description: "Couple spending ledger tools (duit_*). The sender, chat and message id come from the gateway, never the model."
+author: hanzong111
