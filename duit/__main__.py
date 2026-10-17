@@ -26,7 +26,8 @@ def main(argv: list[str]) -> int:
                 line = f"  {b['label']:<22} {fmt(b['spent'], c):>11} / {fmt(b['cap'], c):<11} [{b['status']}]"
                 if "week" in b:
                     w = b["week"]
-                    line += f"   this week {fmt(w['spent'], c)} / {fmt(w['allowance'], c)}"
+                    line += (f"   this week {fmt(w['spent'], c)} / {fmt(w['allowance'], c)} "
+                             f"(target {fmt(w['target'], c)} {'+' if w['carry'] >= 0 else '-'} {fmt(abs(w['carry']), c)})")
                 print(line)
             if v["unsorted"]:
                 print(f"  {'Unsorted':<22} {fmt(v['unsorted'], c):>11}")

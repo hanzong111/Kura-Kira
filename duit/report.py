@@ -6,7 +6,7 @@ import sqlite3
 from datetime import date, timedelta
 
 from .config import Config
-from .periods import month_bounds, week_in_month, weekly_allowance
+from .periods import count_days, month_bounds, month_weeks, week_of
 
 ON_TRACK, AHEAD, OVER = "ok", "ahead", "over"
 PACE_SLACK = 0.05  # a few percent ahead of the calendar still counts as on track
@@ -60,22 +60,46 @@ def bucket_status(conn: sqlite3.Connection, cfg: Config, month: str, person: str
         return {"bucket": bucket_key, "label": b.label, "kind": b.kind, "amount": cap,
                 "paid": paid, "auto": bool(row and row["auto"]), "status": "paid" if paid else "due"}
 
-    used = spent(conn, person, bucket_key, first, last)
-    out = {"bucket": bucket_key, "label": b.label, "kind": b.kind, "cap": cap, "spent": used,
-           "left": cap - used, "pct": round(used / cap, 4) if cap else (0.0 if used == 0 else None),
-           "status": pace_status(used, cap, month_elapsed(month, today))}
+    if b.kind == "weekly":
+        return _weekly_status(conn, cfg, month, person, b, cap, today)
 
-    if b.kind == "weekly" and first <= today <= last:
-        wk = week_in_month(today, month, b.days)
-        before = spent(conn, person, bucket_key, first, wk.in_month_start - timedelta(days=1))
-        allowance = weekly_allowance(cap, before, wk)
-        this_week = spent(conn, person, bucket_key, wk.in_month_start, wk.in_month_end)
-        elapsed = wk.days_elapsed / wk.bucket_days if wk.bucket_days else 1.0
-        out["week"] = {"start": wk.start.isoformat(), "end": wk.end.isoformat(),
-                       "in_month_start": wk.in_month_start.isoformat(), "in_month_end": wk.in_month_end.isoformat(),
-                       "allowance": allowance, "spent": this_week, "left": allowance - this_week,
-                       "days": wk.bucket_days, "days_elapsed": wk.days_elapsed,
-                       "status": pace_status(this_week, allowance, elapsed)}
+    used = spent(conn, person, bucket_key, first, last)
+    return {"bucket": bucket_key, "label": b.label, "kind": b.kind, "cap": cap, "spent": used,
+            "left": cap - used, "pct": round(used / cap, 4) if cap else (0.0 if used == 0 else None),
+            "status": pace_status(used, cap, month_elapsed(month, today))}
+
+
+def _weekly_status(conn: sqlite3.Connection, cfg: Config, month: str, person: str, b, target: int,
+                   today: date) -> dict:
+    """Weekday/weekend: each week has a fixed target; what's under/over in earlier weeks of the month
+    carries into this week ("can spend" = target + carry-over, never below 0). Resets every month."""
+    weeks = month_weeks(month, b.days, target, cfg.tracking_start)
+    counted = [w for w in weeks if w.days]
+    first, last = month_bounds(month)
+    begin = counted[0].a if counted else first
+    cap = sum(w.target for w in counted)
+    used = spent(conn, person, b.key, begin, last)
+    # elapsed share of the month's target, by bucket days (so a weekend bar isn't "ahead" on a Monday)
+    total_days = sum(w.days for w in counted)
+    done_days = count_days(begin, min(today, last), b.days) if today >= begin else 0
+    elapsed = (done_days / total_days if total_days else 1.0) if today <= last else 1.0
+    out = {"bucket": b.key, "label": b.label, "kind": b.kind, "target": target, "cap": cap, "spent": used,
+           "left": cap - used, "pct": round(used / cap, 4) if cap else (0.0 if used == 0 else None),
+           "status": pace_status(used, cap, elapsed)}
+
+    i = week_of(weeks, today) if first <= today <= last else None
+    if i is not None and weeks[i].days:
+        w = weeks[i]
+        carry = sum(x.target - spent(conn, person, b.key, x.a, x.b) for x in weeks[:i] if x.days)
+        can_spend = max(w.target + carry, 0)
+        this_week = spent(conn, person, b.key, w.a, w.b)
+        days_elapsed = count_days(w.a, min(today, w.b), b.days)
+        out["week"] = {"start": w.start.isoformat(), "end": w.end.isoformat(),
+                       "in_month_start": w.a.isoformat(), "in_month_end": w.b.isoformat(),
+                       "target": w.target, "carry": carry, "allowance": can_spend,
+                       "spent": this_week, "left": can_spend - this_week,
+                       "days": w.days, "days_elapsed": days_elapsed,
+                       "status": pace_status(this_week, can_spend, days_elapsed / w.days)}
     return out
 
 

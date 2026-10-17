@@ -4,8 +4,8 @@
 
 | Bucket | Amount | Kind |
 |---|---|---|
-| Weekday (Mon-Fri) | RM400 (RM100 x 4 wk) | weekly cap |
-| Weekend (Sat-Sun) | RM800 (RM200 x 4 wk) | weekly cap |
+| Weekday (Mon-Fri) | RM100 per week | weekly target + carry-over |
+| Weekend (Sat-Sun) | RM200 per weekend | weekly target + carry-over |
 | Extra | RM300 | monthly cap |
 | Grocery | RM200 | monthly cap |
 | Chu Chu / Toiletries | RM60 | monthly cap |
@@ -15,7 +15,8 @@
 | House | RM1,000 | fixed: Vanisa always Paid; Hanz Due until Hanz says "house paid" |
 | Car | RM300 | fixed: same as House |
 
-Goals RM2,510 + fixed RM1,300 = RM3,810 per person, RM7,620 combined.
+Monthly goals = weekly targets for that month's calendar + RM1,310 monthly caps (Oct 2026: 440 + 900 + 1,310 = RM2,650),
+plus fixed RM1,300 per person.
 
 ## Rules
 
@@ -26,8 +27,10 @@ Goals RM2,510 + fixed RM1,300 = RM3,810 per person, RM7,620 combined.
   everyday spending -> Weekday or Weekend by the date (Malaysia time). Weekend = Sat-Sun only.
 - **Unsure about category/bucket** -> the entry is saved as Unsorted and the bot asks; the answer is learned per place.
 - **Extra** only when the message says "extra" or the bot asks (an everyday spend share over RM100).
-- **Weekly allowance:** the monthly total is fixed. Each week gets (left this month / bucket days left) x bucket days
-  in the week, so underspend carries forward and the month never exceeds the plan.
+- **Weekly budgets:** each Mon-Fri has a RM100 target, each Sat-Sun RM200. Weeks cut by the month edge (or by
+  `tracking_start`) get a share by days (Thu-Fri = RM40, a lone Saturday = RM100). Under/overspend in the earlier
+  weeks of the month carries into this week: **can spend = target + carry-over**, never below 0. Resets each month.
+  The bot and dashboard always show all three: target, carry-over (saved / overspent), can spend.
 - **Pace:** spent / cap compared with how far through the month (or week) we are: ok / ahead / over.
 - **Alerts:** at 80% and when a cap is exceeded (week scope for weekday/weekend, month scope otherwise).
 - **Balance:** payer is owed the other person's share; settle-ups (`vanisa paid hanz 86.30`) clear it and never touch

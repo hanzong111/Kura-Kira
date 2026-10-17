@@ -94,7 +94,8 @@ def specs(cfg: Config) -> list[dict]:
              "person": {**_PERSON, "description": "Only if paying for someone else. Default the sender."},
              "month": _MONTH}}},
         {"name": "duit_set_plan",
-         "description": "Change a monthly budget ('plan: grocery 250', 'vanisa petrol 150'). Copied into later months.",
+         "description": "Change a budget ('plan: grocery 250', 'vanisa petrol 150', 'weekend 250'). Weekday/weekend "
+                        "amounts are per week; the others per month. Copied into later months.",
          "parameters": {"type": "object", "required": ["bucket", "amount"], "properties": {
              "bucket": _s(f"Bucket key: {', '.join(cfg.buckets)}"), "amount": _AMOUNT,
              "person": {**_PERSON, "description": "Omit = both"}, "month": _MONTH}}},

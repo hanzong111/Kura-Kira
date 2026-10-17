@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 
 from duit.money import fmt, parse_amount, split_even, split_ratio
-from duit.periods import week_in_month, weekly_allowance
+from duit.periods import month_weeks, week_of
 
 WEEKDAYS, WEEKEND = (0, 1, 2, 3, 4), (5, 6)
 
@@ -34,22 +34,23 @@ def test_splits_add_up_exactly():
     assert sum(split_ratio(1000, [1, 1, 1])) == 1000
 
 
-def test_october_2026_weeks():
-    # Oct 2026: Thu 1st .. Sat 31st -> 22 weekdays, 9 weekend days
-    first = week_in_month(date(2026, 10, 1), "2026-10", WEEKEND)
-    assert (first.bucket_days, first.days_left) == (2, 9)      # Sat 3 + Sun 4
-    last = week_in_month(date(2026, 10, 31), "2026-10", WEEKEND)
-    assert (last.bucket_days, last.days_left) == (1, 1)        # lone Saturday
-    wd = week_in_month(date(2026, 10, 1), "2026-10", WEEKDAYS)
-    assert (wd.bucket_days, wd.days_left, wd.days_elapsed) == (2, 22, 1)
+def test_october_2026_weekly_targets():
+    # Oct 2026: Thu 1st .. Sat 31st
+    wd = month_weeks("2026-10", WEEKDAYS, 10000)
+    assert [(w.days, w.target) for w in wd] == [(2, 4000), (5, 10000), (5, 10000), (5, 10000), (5, 10000)]
+    we = month_weeks("2026-10", WEEKEND, 20000)
+    assert [(w.days, w.target) for w in we] == [(2, 20000), (2, 20000), (2, 20000), (2, 20000), (1, 10000)]
+    assert sum(w.target for w in wd) == 44000 and sum(w.target for w in we) == 90000
 
 
-def test_weekly_allowance_never_exceeds_month():
-    cap = 80000  # RM800 weekend
-    w1 = week_in_month(date(2026, 10, 3), "2026-10", WEEKEND)
-    assert weekly_allowance(cap, 0, w1) == 80000 * 2 // 9      # RM177.77 for a full weekend
-    # underspend carries forward: nothing spent in the first 4 weekends -> last Saturday gets it all
-    w5 = week_in_month(date(2026, 10, 31), "2026-10", WEEKEND)
-    assert weekly_allowance(cap, 0, w5) == cap
-    # overspent month -> nothing left
-    assert weekly_allowance(cap, 90000, w5) == 0
+def test_tracking_start_drops_earlier_days():
+    wd = month_weeks("2026-10", WEEKDAYS, 10000, date(2026, 10, 18))  # starts on a Sunday
+    assert [w.target for w in wd] == [0, 0, 0, 10000, 10000]
+    we = month_weeks("2026-10", WEEKEND, 20000, date(2026, 10, 18))
+    assert [w.target for w in we] == [0, 0, 10000, 20000, 10000]   # Sun 18 = half a weekend
+
+
+def test_week_of():
+    we = month_weeks("2026-10", WEEKEND, 20000)
+    assert week_of(we, date(2026, 10, 17)) == 2
+    assert week_of(we, date(2026, 11, 1)) == 4   # Sunday after the month: same Mon-Sun week

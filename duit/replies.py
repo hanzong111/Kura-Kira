@@ -22,19 +22,32 @@ def _month_name(iso_day: str) -> str:
     return date.fromisoformat(iso_day).strftime("%B")
 
 
-def left_phrase(cfg: Config, st: dict, spent_on: str) -> str:
-    """'RM143.50 left this weekend 🟩' / 'over by RM3.00 for October 🟥'."""
+def week_phrase(cfg: Config, st: dict) -> str:
+    """'This weekend: target RM200 + RM20 saved = RM220 · spent RM56.50 · RM163.50 left 🟩'."""
     c = cfg.currency
-    if "week" in st:
-        w = st["week"]
-        span = "this weekend" if st["bucket"] == "weekend" else f"this week ({st['label'].lower()})"
-        left, status = w["left"], w["status"]
-    else:
-        span = f"in {st['label']} for {_month_name(spent_on)}"
-        left, status = st["left"], st["status"]
-    if left < 0:
-        return f"over by {fmt(-left, c)} {span} {DOT['over']}"
-    return f"{fmt(left, c)} left {span} {DOT[status]}"
+    w = st["week"]
+    span = "This weekend" if st["bucket"] == "weekend" else f"This week ({st['label'].lower()}s)"
+    budget = f"target {fmt(w['target'], c)}"
+    if w["carry"] > 0:
+        budget += f" + {fmt(w['carry'], c)} saved = {fmt(w['allowance'], c)}"
+    elif w["carry"] < 0:
+        budget += f" − {fmt(-w['carry'], c)} overspent = {fmt(w['allowance'], c)}"
+    end = (f"over by {fmt(-w['left'], c)} {DOT['over']}" if w["left"] < 0
+           else f"{fmt(w['left'], c)} left {DOT[w['status']]}")
+    return f"{span}: {budget} · spent {fmt(w['spent'], c)} · {end}"
+
+
+def left_phrase(cfg: Config, st: dict, spent_on: str) -> str:
+    """'RM30.00 left in Petrol for October 🟨' / 'over by RM3.00 in Toll for October 🟥'."""
+    c = cfg.currency
+    span = f"in {st['label']} for {_month_name(spent_on)}"
+    if st["left"] < 0:
+        return f"over by {fmt(-st['left'], c)} {span} {DOT['over']}"
+    return f"{fmt(st['left'], c)} left {span} {DOT[st['status']]}"
+
+
+def budget_phrase(cfg: Config, st: dict, spent_on: str) -> str:
+    return week_phrase(cfg, st) if "week" in st else left_phrase(cfg, st, spent_on)
 
 
 def spend_reply(cfg: Config, e: dict) -> str:
@@ -57,12 +70,16 @@ def spend_reply(cfg: Config, e: dict) -> str:
     if len(shares) == 1:
         (person, _), = shares.items()
         if person in status:
-            lines[0] += f" — {left_phrase(cfg, status[person], e['spent_on'])}"
+            st = status[person]
+            if "week" in st:
+                lines.append(f"   {week_phrase(cfg, st)}")
+            else:
+                lines[0] += f" — {left_phrase(cfg, st, e['spent_on'])}"
     else:
         for person, amt in shares.items():
             line = f"   {_name(cfg, person)} {fmt(amt, c)}"
             if person in status:
-                line += f" → {left_phrase(cfg, status[person], e['spent_on'])}"
+                line += f" → {budget_phrase(cfg, status[person], e['spent_on'])}"
             lines.append(line)
     for a in e.get("alerts") or []:
         lines.append(alert_line(cfg, a))
@@ -136,9 +153,7 @@ def status_text(cfg: Config, st: dict, person: str | None = None) -> str:
             if b["kind"] == "fixed":
                 continue
             if "week" in b:
-                w = b["week"]
-                out.append(f"  {b['label']}: {fmt(w['left'], c)} left this week "
-                           f"({fmt(w['spent'], c)}/{fmt(w['allowance'], c)}) {DOT[w['status']]}")
+                out.append(f"  {week_phrase(cfg, b)}")
             else:
                 out.append(f"  {b['label']}: {fmt(b['left'], c)} left ({fmt(b['spent'], c)}/{fmt(b['cap'], c)}) "
                            f"{DOT[b['status']]}")

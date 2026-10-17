@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import tomllib
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -41,6 +42,7 @@ class Config:
     categories: tuple[str, ...]
     alert_at: tuple[float, ...] = (0.8, 1.0)
     ask_extra_over_sen: int = 10000
+    tracking_start: date | None = None  # days before this don't count towards weekly targets
 
     @property
     def tz(self) -> ZoneInfo:
@@ -90,7 +92,14 @@ def parse(data: dict) -> Config:
         categories=tuple(rules.get("categories", ())),
         alert_at=tuple(rules.get("alert_at", (0.8, 1.0))),
         ask_extra_over_sen=parse_amount(rules.get("ask_extra_over", 100)),
+        tracking_start=_date(rules.get("tracking_start")),
     )
+
+
+def _date(v) -> date | None:
+    if v in (None, ""):
+        return None
+    return v if isinstance(v, date) else date.fromisoformat(str(v))
 
 
 def load(path: str | os.PathLike | None = None) -> Config:

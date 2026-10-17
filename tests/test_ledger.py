@@ -176,13 +176,16 @@ def test_new_month_resets_hanz_to_due(ledger, clock):
 
 
 def test_plan_totals_match_the_agreed_plan(ledger):
+    # October 2026: weekday targets 40 + 4x100 = 440, weekend 4x200 + 100 (lone Sat 31st) = 900
     st = ledger.status()
     for p in ("hanz", "vanisa"):
-        assert st["people"][p]["goals"]["cap"] == 251000
+        b = st["people"][p]["buckets"]
+        assert (b["weekday"]["target"], b["weekday"]["cap"]) == (10000, 44000)
+        assert (b["weekend"]["target"], b["weekend"]["cap"]) == (20000, 90000)
+        assert st["people"][p]["goals"]["cap"] == 44000 + 90000 + 30000 + 20000 + 6000 + 20000 + 5000 + 50000
         assert st["people"][p]["fixed"]["total"] == 130000
-        assert st["people"][p]["outflow_plan"] == 381000
-    assert st["combined"]["goals"]["cap"] == 502000
-    assert st["combined"]["outflow_plan"] == 762000
+    assert st["combined"]["goals"]["cap"] == 2 * 265000
+    assert st["combined"]["outflow_plan"] == 2 * (265000 + 130000)
 
 
 def test_plan_change_copies_forward(ledger, clock):
@@ -206,24 +209,45 @@ def test_alerts_at_80_and_over(ledger):
 
 
 def test_weekly_alert_uses_this_weeks_allowance(ledger):
-    # weekend of 17-18 Oct: allowance = 800 * 2 / 5 weekend days left (17, 18, 24, 25, 31)
-    st = ledger.status()["people"]["hanz"]["buckets"]["weekend"]["week"]
-    assert st["days"] == 2
-    allowance = st["allowance"]
-    assert allowance == 80000 * 2 // 5
-    e = ledger.log_spend(sender="hanz", place="Dinner", total=allowance / 100 + 1, bucket="daily")
+    # Sat 17 Oct, nothing spent on the two earlier weekends -> 200 target + 400 saved = 600
+    wk = ledger.status()["people"]["hanz"]["buckets"]["weekend"]["week"]
+    assert (wk["target"], wk["carry"], wk["allowance"]) == (20000, 40000, 60000)
+    e = ledger.log_spend(sender="hanz", place="Dinner", total=wk["allowance"] / 100 + 1, bucket="daily")
     assert e["alerts"][0]["scope"] == "week" and e["alerts"][0]["threshold"] == 1.0
 
 
 def test_week_allowance_carries_forward(ledger, clock):
+    def week(person="hanz"):
+        return ledger.status()["people"][person]["buckets"]["weekend"]["week"]
+
     clock.set("2026-10-03T12:00")          # first weekend of October
-    w1 = ledger.status()["people"]["hanz"]["buckets"]["weekend"]["week"]["allowance"]
-    assert w1 == 80000 * 2 // 9
-    ledger.log_spend(sender="hanz", place="Big dinner", total=300, bucket="weekend")
-    clock.set("2026-10-10T12:00")          # next weekend: (800 - 300) * 2 / 7
-    w2 = ledger.status()["people"]["hanz"]["buckets"]["weekend"]["week"]["allowance"]
-    assert w2 == 50000 * 2 // 7
-    assert ledger.status()["people"]["vanisa"]["buckets"]["weekend"]["week"]["allowance"] == 80000 * 2 // 7
+    assert (week()["target"], week()["carry"], week()["allowance"]) == (20000, 0, 20000)
+    ledger.log_spend(sender="hanz", place="Big dinner", total=300, bucket="weekend")   # over by 100
+    clock.set("2026-10-10T12:00")
+    assert (week()["carry"], week()["allowance"]) == (-10000, 10000)                  # pays it back
+    assert (week("vanisa")["carry"], week("vanisa")["allowance"]) == (20000, 40000)   # saved 200
+    ledger.log_spend(sender="hanz", place="Concert", total=500, bucket="weekend")     # way over
+    clock.set("2026-10-17T12:00")
+    assert week()["carry"] == -10000 + 20000 - 50000 and week()["allowance"] == 0     # never below 0
+    clock.set("2026-11-07T12:00")
+    # resets monthly: October's -400 is gone; only Sun 1 Nov (half a weekend, unspent) carries in
+    assert (week()["carry"], week()["allowance"]) == (10000, 30000)
+
+
+def test_tracking_start(cfg, clock):
+    from dataclasses import replace
+    from datetime import date
+
+    from duit import db
+    from duit.ledger import Ledger
+    led = Ledger(db.connect(":memory:"), replace(cfg, tracking_start=date(2026, 10, 18)), clock)
+    clock.set("2026-10-18T12:00")          # Sunday, first tracked day
+    b = led.status()["people"]["hanz"]["buckets"]
+    assert (b["weekend"]["week"]["target"], b["weekend"]["week"]["carry"]) == (10000, 0)   # half a weekend
+    assert b["weekend"]["cap"] == 10000 + 20000 + 10000
+    assert "week" not in b["weekday"]       # no weekdays left in this Mon-Sun week
+    clock.set("2026-10-19T12:00")
+    assert led.status()["people"]["hanz"]["buckets"]["weekday"]["week"]["allowance"] == 10000
 
 
 def test_ask_extra_for_big_daily_spends(ledger):

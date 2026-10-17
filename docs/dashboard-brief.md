@@ -45,7 +45,11 @@ Build the local web dashboard for Kura-Kira, the couple spending tracker in this
    - House/Car as PAID/DUE stamps, not bars
    - paid-by strip (Hanz paid vs Vanisa paid) and "Vanisa owes Hanz RMx"
 3. **HANZ (left) | VANISA (right)**, mirrored:
-   - "This week": weekday and weekend bars showing allowance/spent/left
+   - "This week": weekday and weekend bars. Show the breakdown from `buckets[k]["week"]`: `target`
+     (RM100/RM200), `carry` (+ saved / − overspent in earlier weeks of the month, yellow when negative) and
+     `allowance` (= can spend = target + carry, never below 0), then the bar of `spent` against `allowance`,
+     with `left`. The monthly weekday/weekend bar is `spent` against `cap` (the sum of that month's week
+     targets).
    - "This month": the total, then bars for extra, grocery, chuchu, petrol, toll and parents
    - House/Car stamps; Vanisa is always PAID, Hanz is DUE until paid
    - an Unsorted chip
