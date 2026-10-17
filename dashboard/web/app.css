@@ -46,3 +46,66 @@
   .kk-clear { width: 100%; }
   .kk-telegram { margin-left: 0; grid-column: 1 / -1; }
 }
+
+/* ---- pixel look ------------------------------------------------------------------------------------ */
+/* Text: VT323 (pixel monospace, OFL, fonts/) for body and numbers; the pack's Press Start 2P stays on
+   headings. VT323 has a small x-height, so font-size-adjust scales it up to read like the pack's sizes. */
+@font-face { font-family: KKPixelMono; src: url('fonts/VT323-Regular.ttf') format('truetype'); font-display: swap; }
+:root { --du-mono: KKPixelMono, DuitMono, ui-monospace, monospace; --kk-mono-adjust: .56; }
+body { font-size-adjust: var(--kk-mono-adjust); -webkit-font-smoothing: none; font-smooth: never; }
+h1, h2, .du-pixel, .du-player, .du-month select, .du-day, .du-combined-heading { font-size-adjust: none; }
+/* VT323 has a single weight: keep "bold" from turning into blurry faux-bold */
+strong, b, h3, .du-section-label, .du-month-total, .du-budget-label strong, .du-total-line strong,
+.du-button, .du-badge, .du-tag, .du-settle, th { font-synthesis: none; }
+.du-tag { font-size: 12px; }
+
+/* Bars: a solid fill with pixel shading: a hard highlight band on top, a shadow band underneath. */
+.du-meter { border-width: 3px; background:
+  linear-gradient(rgba(33, 27, 50, .12) 0 3px, transparent 3px) , var(--du-surface-light); }
+.du-meter-fill { background:
+    linear-gradient(rgba(255, 255, 255, .38) 0 3px, transparent 3px calc(100% - 3px), rgba(33, 27, 50, .22) calc(100% - 3px)),
+    var(--state-color, var(--du-green)); }
+.du-meter--over .du-meter-fill { border-right: 0; }
+.du-meter--hero { height: 28px; }
+/* the pace marker gets a pixel cap */
+.du-marker { border-left-width: 3px; }
+.du-marker::before { content: ""; position: absolute; top: -4px; left: -6px; width: 9px; height: 4px; background: var(--du-ink); }
+
+/* Slightly bigger text everywhere, more on phones. */
+.du-budget-label, .du-budget-label strong { font-size: 15px; }
+.du-budget-foot, .kk-carry, .kk-muted, .kk-summary, .du-legend, .du-paid-strip { font-size: 14px; }
+.du-mini-buckets .du-budget-label, .du-mini-buckets .du-budget-label strong { font-size: 14px; }
+.du-table { font-size: 15px; }
+.du-place { font-size: 15px; }
+.kk-live { font-size: 13px; }
+@media (max-width: 767px) {
+  body { font-size: 17px; }
+  .du-budget-label, .du-budget-label strong,
+  .du-mini-buckets .du-budget-label, .du-mini-buckets .du-budget-label strong { font-size: 17px; }
+  .du-budget-foot, .kk-carry, .kk-muted, .kk-summary, .du-paid-strip, .du-bills .du-badge { font-size: 16px; }
+  .du-legend { font-size: 14px; }
+  .du-entry { font-size: 17px; }
+  .du-entry-title { font-size: 19px; }
+  .du-entry-meta, .du-entry-split { font-size: 16px; }
+  .du-filter select, .du-filter input, .du-export, .kk-clear { font-size: 16px; }
+  .du-place { font-size: 17px; }
+  .du-question-text { font-size: 17px; }
+  .du-meter { height: 20px; }
+  .du-mini-buckets .du-meter { height: 18px; }
+  /* bigger text must wrap instead of pushing the page sideways */
+  .du-budget-label { flex-wrap: wrap; }
+  .du-badge { flex-wrap: wrap; white-space: normal; max-width: 100%; }
+  /* one bar per row: the bigger amounts don't fit two across */
+  .du-mini-buckets { grid-template-columns: 1fr; }
+  .du-mini-buckets .du-budget-label { flex-direction: row; flex-wrap: wrap; justify-content: space-between; }
+  /* the pack switches these to the body font on phones: give them the pixel font's size boost back */
+  .du-month select, .du-day { font-size-adjust: var(--kk-mono-adjust); }
+  .du-month select { font-size: 16px; width: 100%; }
+  .du-month { min-width: 0; }
+  .du-month label { flex: 1; min-width: 0; }
+  .du-day { font-size: 16px; }
+  .du-tag { font-size: 13px; }
+  .du-section-label, .du-month-total h3 { font-size: 17px; }
+  .du-settle { font-size: 16px; }
+  .du-paid-strip strong, .du-bills strong, .du-partner-footer strong { font-size: 16px; }
+}

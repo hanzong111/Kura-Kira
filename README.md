@@ -420,7 +420,8 @@ Built on [Hermes Agent](https://github.com/NousResearch/hermes-agent) by Nous Re
 The dashboard art (Hanz, Vanisa, Chu Chu, the skyline) was generated for this project; its prompts and source
 images are in [docs/design/duit-arcade/source/](docs/design/duit-arcade/source/), and its provenance in
 [ASSET_PROVENANCE.md](dashboard/web/duit/licenses/ASSET_PROVENANCE.md). Fonts: [Press Start 2P](https://github.com/google/fonts/tree/main/ofl/pressstart2p)
-and [IBM Plex Mono](https://github.com/IBM/plex), both under the SIL Open Font License (notices in
-`dashboard/web/duit/licenses/`).
+for headings, [VT323](https://github.com/google/fonts/tree/main/ofl/vt323) for text and numbers, and
+[IBM Plex Mono](https://github.com/IBM/plex) as the fallback, all under the SIL Open Font License (notices in
+`dashboard/web/duit/licenses/` and `dashboard/web/fonts/`).
 
 No license has been chosen for the code yet.
