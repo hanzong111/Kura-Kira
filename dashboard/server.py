@@ -11,6 +11,7 @@
 All numbers come from duit.ledger / duit.report; this file only shapes them for the page and formats money
 with duit.money.fmt. A fresh SQLite connection is opened per request (WAL lets the bot write meanwhile).
 Binds to 127.0.0.1 and rejects non-localhost Host headers (DNS-rebinding guard): the ledger is private.
+KURA_KIRA_HOSTS=a.example,b.example also accepts those names, for a tunnel that puts a login in front.
 """
 
 from __future__ import annotations
@@ -36,6 +37,7 @@ from duit.periods import month_bounds, month_key
 
 WEB = Path(__file__).resolve().parent / "web"
 HOST, PORT = "127.0.0.1", 8790
+LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
 DAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 # keys whose integer values are sen; each gets a "<key>_fmt" sibling in the JSON
 MONEY = {"cap", "spent", "left", "amount", "allowance", "total", "spends", "fixed", "unknown", "unsorted",
@@ -61,8 +63,10 @@ class App:
     """Everything the handler needs; tests build one with their own DB, config and clock."""
 
     def __init__(self, db_path: str | os.PathLike | None = None, config_path: str | os.PathLike | None = None,
-                 clock: Callable[[], datetime] | None = None):
+                 clock: Callable[[], datetime] | None = None, hosts: tuple[str, ...] = ()):
         self.db_path = Path(db_path) if db_path else db.default_path()
+        # Host headers accepted besides localhost, e.g. the ngrok domain (the tunnel does the login)
+        self.hosts = LOCAL_HOSTS + tuple(h.strip().lower() for h in hosts if h.strip())
         self.config_path = config_path
         self.clock = clock
 
@@ -201,7 +205,7 @@ def make_handler(app: App):
 
         def host_ok(self) -> bool:
             host = (self.headers.get("Host") or "").rsplit(":", 1)[0].strip("[]").lower()
-            return host in ("127.0.0.1", "localhost", "::1")
+            return host in app.hosts
 
         def send_body(self, body: bytes, ctype: str, code: int = 200, extra: dict | None = None):
             self.send_response(code)
@@ -285,7 +289,7 @@ def main() -> None:
     ap.add_argument("--port", type=int, default=int(os.environ.get("KURA_KIRA_PORT", PORT)))
     ap.add_argument("--db", help="ledger file (default: DUIT_DB or data/duit.db)")
     args = ap.parse_args()
-    app = App(args.db)
+    app = App(args.db, hosts=tuple(os.environ.get("KURA_KIRA_HOSTS", "").split(",")))
     httpd = serve(app, HOST, args.port)
     print(f"Kura-Kira dashboard on http://localhost:{args.port}  (ledger {app.db_path})", flush=True)
     try:

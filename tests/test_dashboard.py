@@ -134,3 +134,16 @@ def test_events_fire_on_write_not_on_reads(base, cfg, clock):
         stream.readline(), stream.readline()
         Ledger(db.connect(path), cfg, clock).log_spend(sender="hanz", place="Kopi Corner", total=5, bucket="daily")
         assert stream.readline() == b"event: change\n"
+
+
+def test_extra_hosts_for_a_tunnel(tmp_path, clock):
+    seed(tmp_path / "d.db", clock.now.strftime("%Y-%m-%dT%H:%M"))
+    httpd = serve(App(tmp_path / "d.db", clock=clock, hosts=("Kura.ngrok-free.dev", "")), port=0)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        url = f"http://127.0.0.1:{httpd.server_port}/api/status"
+        assert get(url, {"Host": "kura.ngrok-free.dev"})[0] == 200
+        assert error(url, {"Host": "other.ngrok-free.dev"})[0] == 403
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
