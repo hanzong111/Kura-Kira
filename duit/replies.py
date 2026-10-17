@@ -165,3 +165,44 @@ def status_text(cfg: Config, st: dict, person: str | None = None) -> str:
     if st["pending"]:
         out.append(f"❓ {len(st['pending'])} waiting for an answer")
     return "\n".join(out)
+
+
+def bucket_text(cfg: Config, st: dict, bucket: str, person: str | None = None) -> str:
+    """One bucket for one or both people ('how much left for weekend?')."""
+    c = cfg.currency
+    b = cfg.buckets[bucket]
+    lines = []
+    for p, v in st["people"].items():
+        if person and p != person:
+            continue
+        s = v["buckets"][bucket]
+        if s["kind"] == "fixed":
+            lines.append(f"{v['name']} · {b.label} {fmt(s['amount'], c)} {DOT[s['status']]} {s['status'].upper()}")
+        elif "week" in s:
+            lines.append(f"{v['name']} · {week_phrase(cfg, s)}")
+        else:
+            lines.append(f"{v['name']} · {b.label}: {fmt(s['left'], c)} left "
+                         f"({fmt(s['spent'], c)}/{fmt(s['cap'], c)}) {DOT[s['status']]}")
+    return "\n".join(lines)
+
+
+def spends_text(cfg: Config, rows: list[dict], month: str, person: str | None, filters: dict, limit: int) -> str:
+    """Search result with the total computed here ('what did we spend on food?')."""
+    c = cfg.currency
+    label = [date.fromisoformat(month + "-01").strftime("%B %Y")]
+    if person:
+        label.append(cfg.people[person].name)
+    for k in ("bucket", "category", "query"):
+        if filters.get(k):
+            label.append(str(filters[k]).title() if k != "query" else f"“{filters[k]}”")
+    amount = (lambda r: r["shares"].get(person, 0)) if person else (lambda r: r["total_sen"])
+    total = sum(amount(r) for r in rows)
+    out = [f"🔎 {' · '.join(label)}: {len(rows)} spend{'s' if len(rows) != 1 else ''}, total {fmt(total, c)}"]
+    for r in rows[:limit]:
+        where = cfg.buckets[r["bucket"]].label if r["bucket"] else "Unsorted"
+        cat = f" · {r['category']}" if r["category"] else ""
+        day = date.fromisoformat(r["spent_on"]).strftime("%d %b")
+        out.append(f"#{r['id']} {day} {r['place']} {fmt(amount(r), c)} ({where}{cat})")
+    if len(rows) > limit:
+        out.append(f"…and {len(rows) - limit} more")
+    return "\n".join(out)

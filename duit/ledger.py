@@ -246,7 +246,10 @@ class Ledger:
                 return {**self.entry(dup["id"]), "duplicate": True}
 
         day = self._date(spent_on)
-        total_sen, share_map = self._shares(sender, total, shares)
+        stated_payer = None if paid_by is None or paid_by.strip().lower() in (EACH, "each paid own", "own") \
+            else self._person(paid_by)
+        # no shares given: it's the payer's own spend (falls back to the sender)
+        total_sen, share_map = self._shares(stated_payer or sender, total, shares)
         payer = self._payer(paid_by, sender, share_map)
 
         learned = self.lookup_place(place)

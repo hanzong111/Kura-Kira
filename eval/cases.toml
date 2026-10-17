@@ -287,3 +287,12 @@ id = "chat-number-not-spend"
 sender = "vanisa"
 text = "reach in 10 min"
 expect = { kind = "ignore" }
+
+# ---- real messages from the group ----------------------------------------------------------------
+[[case]]
+id = "other-person-paid-own"
+sender = "hanz"
+text = "Vanisa Paid RM70 ( Sushi Zanmai , food )"
+expect = { kind = "spend", place = "Sushi Zanmai", amount = 70, shares = { vanisa = 70 }, paid_by = "vanisa", category = "Food" }
+note = "real bug 2026-10-18: was charged to Hanz"
+

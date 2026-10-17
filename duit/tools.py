@@ -1,39 +1,58 @@
 """The agent's tools: one spec list + one dispatcher, used by the Hermes plugin and the tests.
 
-Who sent the message, the chat and the message id come from the gateway (`Context`), never from
-the model, so the model can't book a spend to the wrong person. Every write returns `reply`, the
-exact text to post. Bad input returns {"error", "ask": true} so the bot asks instead of guessing.
+Division of labour: the model only *reads* the message (place, category, bucket, who, how it was
+split). Everything numeric is code:
+- the sender, chat, message id, message text and send time come from the gateway (`Context`);
+- every amount the model passes must appear in the original message (`textcheck`);
+- splits ("even", "2:1", "for vanisa") are computed here, never by the model;
+- dates ("yesterday") are relative to when the message was sent, not when it was processed;
+- every tool returns `reply`, the exact text to post (the plugin enforces that it's what gets posted);
+- every call is written to the audit table.
+Bad input returns {"error", "ask": true} so the bot asks instead of guessing.
 """
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 from typing import Any, Callable
 
-from . import replies
+from . import replies, textcheck
 from .config import DAILY, Config
 from .ledger import Ledger, LedgerError
-from .money import fmt
+from .money import fmt, parse_amount, split_even, split_ratio
 from .periods import month_key
+
+# when the model leaves out the bucket (and offers no options), the category decides
+CATEGORY_BUCKET = {"groceries": "grocery", "pet": "chuchu", "toiletries": "chuchu", "family": "parents"}
 
 
 @dataclass(frozen=True)
 class Context:
-    """Facts about the incoming message, supplied by the gateway."""
+    """Facts about the incoming message, supplied by the gateway — never by the model."""
     sender_telegram_id: str = ""
     chat_id: str = ""
     msg_id: str = ""
-    sender: str | None = None  # person key; only for tests / CLI use without Telegram IDs
+    text: str | None = None         # the message as sent (None = unknown: amount checks are skipped)
+    sent_at: datetime | None = None  # when it was sent (None = now)
+    sender: str | None = None        # person key; only for tests / CLI use without Telegram IDs
+
+
+def _rm(sen: int) -> str:
+    """Sen -> exact decimal string for the ledger (no floats anywhere)."""
+    return f"{sen // 100}.{sen % 100:02d}"
 
 
 def _s(desc: str, **extra) -> dict:
     return {"type": "string", "description": desc, **extra}
 
 
-_AMOUNT = {"type": ["number", "string"], "description": "RM amount, e.g. 56.50 or \"RM56.50\""}
+_AMOUNT = {"type": ["number", "string"],
+           "description": "RM amount exactly as written in the message, e.g. \"RM56.50\" or \"12.9\". Never compute it."}
 _SHARES = {"type": "object", "additionalProperties": {"type": ["number", "string"]},
-           "description": "Per-person RM amounts when the message splits it, e.g. {\"hanz\": 13.20, \"vanisa\": 14.50}. "
-                          "Omit for a normal message (all of it is the sender's)."}
+           "description": "Only when the message itself states each person's amount, e.g. \"13.20 hanz, 14.50 vanisa\" "
+                          "→ {\"hanz\": \"13.20\", \"vanisa\": \"14.50\"}. Never compute shares; use `split` instead."}
 _PERSON = _s("hanz or vanisa")
 _ENTRY = {"type": "integer", "description": "Entry number (the #123 in the bot's messages)"}
 _MONTH = _s("YYYY-MM; default this month")
@@ -41,25 +60,32 @@ _MONTH = _s("YYYY-MM; default this month")
 
 def specs(cfg: Config) -> list[dict]:
     purpose = [k for k, b in cfg.buckets.items() if b.kind == "monthly"]
-    bucket_desc = (f"'{DAILY}' = everyday spending (the ledger picks weekday/weekend from the date), or a purpose "
-                   f"bucket: {', '.join(purpose)}. Omit when unsure.")
+    bucket_desc = (f"'{DAILY}' = everyday spending (weekday/weekend is picked from the date), or a purpose bucket: "
+                   f"{', '.join(purpose)}. Omit when unsure.")
     cats = ", ".join(cfg.categories)
+    split_props = {
+        "split": _s("How a shared spend is divided, when the message says so: \"even\" (split / shared / half) or a "
+                    "ratio like \"2:1\" in the order of split_between. The ledger computes the shares."),
+        "split_between": {"type": "array", "items": {"type": "string"},
+                          "description": "People in the split, in ratio order. Default both: [\"hanz\", \"vanisa\"]."},
+        "for_person": _s("When the whole spend is someone else's (\"grab 25 for vanisa\"): that person."),
+    }
     return [
         {"name": "duit_log_spend",
-         "description": "Record a spend from the group chat. The sender, chat and message are filled in automatically.",
+         "description": "Record a spend from the group chat. Sender, chat, message, text and date are filled in "
+                        "automatically; amounts are checked against the message.",
          "parameters": {"type": "object", "required": ["place"], "properties": {
              "place": _s("Where/what as the user wrote it: 'Sushi-Mentai', 'Zapfan', 'petrol'"),
-             "amount": {**_AMOUNT, "description": "Total in RM. Omit when shares are given (total = sum of shares)."},
-             "shares": _SHARES,
+             "amount": {**_AMOUNT, "description": _AMOUNT["description"] + " Omit only when `shares` are given."},
+             "shares": _SHARES, **split_props,
              "paid_by": _s("Who paid, only if the message says: hanz, vanisa, or each (each paid own). Omit otherwise."),
              "bucket": _s(bucket_desc),
              "bucket_options": {"type": "array", "items": {"type": "string"},
                                 "description": "When bucket is omitted because you're unsure: the 2-3 likely bucket keys."},
              "category": _s(f"One of: {cats}"),
              "item": _s("Optional detail, e.g. 'lunch'"),
-             "date": _s("YYYY-MM-DD, 'today' or 'yesterday'. Default today."),
+             "date": _s("Only if the message says: 'yesterday' or YYYY-MM-DD. Default: when it was sent."),
              "part": {"type": "integer", "description": "When one message has several spends: 1, 2, 3... for each. Default 1."},
-             "raw_text": _s("The message text as sent"),
          }}},
         {"name": "duit_answer",
          "description": "Apply an answer to the bot's question about an entry (who paid / which bucket). The answer is "
@@ -71,12 +97,13 @@ def specs(cfg: Config) -> list[dict]:
              "paid_by": _s("hanz, vanisa, or each"),
          }}},
         {"name": "duit_edit_spend",
-         "description": "Fix a logged spend ('edit #142 food 30', 'wrong, should be 85'). Pass only what changes.",
+         "description": "Fix a logged spend ('edit #142 food 30', 'wrong, should be 85'). Pass only what changes; "
+                        "a new amount must appear in the message.",
          "parameters": {"type": "object", "properties": {
              "entry_id": {**_ENTRY, "description": "Entry to fix. Omit = the sender's latest entry."},
-             "place": _s("New place"), "item": _s("New item"), "amount": _AMOUNT, "shares": _SHARES,
+             "place": _s("New place"), "item": _s("New item"), "amount": _AMOUNT, "shares": _SHARES, **split_props,
              "paid_by": _s("hanz, vanisa, or each"), "bucket": _s(bucket_desc), "category": _s(f"One of: {cats}"),
-             "date": _s("YYYY-MM-DD, 'today' or 'yesterday'"),
+             "date": _s("'yesterday' or YYYY-MM-DD"),
          }}},
         {"name": "duit_delete_spend",
          "description": "Delete a spend: 'delete #142', or 'undo' (omit entry_id = the sender's latest entry).",
@@ -100,16 +127,17 @@ def specs(cfg: Config) -> list[dict]:
              "bucket": _s(f"Bucket key: {', '.join(cfg.buckets)}"), "amount": _AMOUNT,
              "person": {**_PERSON, "description": "Omit = both"}, "month": _MONTH}}},
         {"name": "duit_status",
-         "description": "Budget status ('how are we doing?', 'how much left?'). Post the returned reply.",
+         "description": "Budget status ('how are we doing?', 'how much left?', 'how much left for weekend?').",
          "parameters": {"type": "object", "properties": {
              "month": _MONTH,
-             "person": {**_PERSON, "description": "Only this person; use 'me' for the sender. Omit = both."}}}},
+             "person": {**_PERSON, "description": "Only this person; 'me' for the sender. Omit = both."},
+             "bucket": _s("Only this bucket (e.g. 'weekend' for 'how much left for weekend?')")}}},
         {"name": "duit_list_spends",
-         "description": "Search logged spends ('what did we spend on food this month?').",
+         "description": "Search logged spends ('what did we spend on food this month?'). Returns the total too.",
          "parameters": {"type": "object", "properties": {
              "month": _MONTH, "person": _PERSON, "bucket": _s("Bucket key or 'unsorted'"),
              "category": _s("Category"), "paid_by": _s("hanz, vanisa or each"), "query": _s("Text to find"),
-             "limit": {"type": "integer", "description": "Max rows, default 30"}}}},
+             "limit": {"type": "integer", "description": "Max rows shown, default 15"}}}},
         {"name": "duit_pending",
          "description": "Entries still waiting for an answer, with the question to re-ask for each.",
          "parameters": {"type": "object", "properties": {}}},
@@ -120,6 +148,19 @@ def specs(cfg: Config) -> list[dict]:
          "description": "Fixed bills not paid yet this month (for reminders).",
          "parameters": {"type": "object", "properties": {"month": _MONTH}}},
     ]
+
+
+def chat_lines(result: dict) -> list[str]:
+    """What a tool result contributes to the group message (empty for errors: the bot asks instead)."""
+    if result.get("error"):
+        return []
+    lines = [result["reply"]] if result.get("reply") else []
+    q = result.get("question")
+    if q:
+        lines.append(q["text"])
+    elif result.get("ask_extra"):
+        lines.append(f"Everyday or Extra? (#{result['entry_id']})")
+    return lines
 
 
 class Tools:
@@ -136,14 +177,28 @@ class Tools:
 
     def call(self, name: str, args: dict | None, ctx: Context) -> dict:
         handler = self._handlers.get(name)
+        args = dict(args or {})
         if handler is None:
-            return {"error": f"unknown tool {name}"}
-        try:
-            return handler(dict(args or {}), ctx)
-        except LedgerError as e:
-            return {"error": str(e), "ask": True}
+            result = {"error": f"unknown tool {name}"}
+        else:
+            try:
+                result = handler(args, ctx)
+            except LedgerError as e:
+                result = {"error": str(e), "ask": True}
+        self._audit(name, args, ctx, result)
+        return result
 
-    # ---- identity ---------------------------------------------------------------------------------
+    def _audit(self, name: str, args: dict, ctx: Context, result: dict) -> None:
+        try:
+            self.led.conn.execute(
+                "INSERT INTO audit(at, tool, sender, chat_id, msg_id, args, result, ok) VALUES (?,?,?,?,?,?,?,?)",
+                (self.led.now().isoformat(timespec="seconds"), name, ctx.sender_telegram_id or ctx.sender,
+                 ctx.chat_id or None, ctx.msg_id or None, json.dumps(args, ensure_ascii=False, default=str),
+                 json.dumps(result, ensure_ascii=False, default=str), int(not result.get("error"))))
+        except Exception:  # auditing must never break bookkeeping
+            pass
+
+    # ---- identity, dates, amounts -----------------------------------------------------------------
     def _sender(self, ctx: Context) -> str:
         if ctx.sender_telegram_id:
             try:
@@ -170,16 +225,102 @@ class Tools:
         except ValueError as e:
             raise LedgerError(str(e)) from None
 
-    def _shares(self, shares: dict | None, ctx: Context) -> dict | None:
-        if not shares:
+    def _sent_day(self, ctx: Context) -> date:
+        if ctx.sent_at is None:
+            return self.led.today()
+        return ctx.sent_at.astimezone(self.cfg.tz).date()
+
+    def _day(self, value: Any, ctx: Context) -> date:
+        """The spend date: from the message ('yesterday' = the day before it was sent), default the send day."""
+        sent = self._sent_day(ctx)
+        if value in (None, "", "today"):
+            return sent
+        v = str(value).strip().lower()
+        if v == "yesterday":
+            return sent - timedelta(days=1)
+        try:
+            return date.fromisoformat(v)
+        except ValueError:
+            raise LedgerError(f"date must be 'yesterday' or YYYY-MM-DD, got {value!r}") from None
+
+    @staticmethod
+    def _sen(value: Any, what: str) -> int:
+        try:
+            sen = parse_amount(value)
+        except ValueError:
+            raise LedgerError(f"{what} {value!r} isn't an amount") from None
+        if sen <= 0:
+            raise LedgerError(f"{what} must be more than zero")
+        return sen
+
+    def _verify(self, ctx: Context, amounts: dict[str, int]) -> None:
+        problem = textcheck.check_amounts(ctx.text, amounts)
+        if problem:
+            raise LedgerError(problem)
+
+    def _amounts(self, a: dict, ctx: Context, sender: str, required: bool) -> tuple[int | None, dict | None]:
+        """Turn what the model read (amount + split / for_person / stated shares) into a total and shares.
+        All arithmetic happens here; every number the model passed must appear in the message."""
+        stated = a.get("shares") or None
+        split = (a.get("split") or "").strip().lower() or None
+        for_person = self._person(a.get("for_person"), ctx)
+        modes = sum(bool(x) for x in (stated, split, for_person))
+        if modes > 1:
+            raise LedgerError("use only one of shares / split / for_person")
+        total = self._sen(a["amount"], "amount") if a.get("amount") not in (None, "") else None
+
+        if stated:
+            shares = {}
+            for k, v in stated.items():
+                p = self._person(k, ctx)
+                if p in (None, "each"):
+                    raise LedgerError(f"shares must be per person, got {k!r}")
+                shares[p] = self._sen(v, f"{self.cfg.people[p].name}'s share")
+            checks = {f"{self.cfg.people[p].name}'s share": v for p, v in shares.items()}
+            if total is not None:
+                checks["total"] = total
+            self._verify(ctx, checks)
+            if total is None:
+                extra = [n for n in textcheck.unused_numbers(ctx.text, list(shares.values())) if n > max(shares.values())]
+                if extra:
+                    raise LedgerError(f"the message also says {extra[0] / 100:.2f} — is that the total? The shares add "
+                                      f"up to {sum(shares.values()) / 100:.2f}. Ask which is right")
+            return total, shares
+
+        if total is None:
+            if required:
+                raise LedgerError("amount is missing — ask how much")
+            return None, None
+        self._verify(ctx, {"total": total})
+
+        if split:
+            people = [self._person(p, ctx) for p in (a.get("split_between") or list(self.cfg.people))]
+            if any(p in (None, "each") for p in people) or len(set(people)) != len(people) or len(people) < 2:
+                raise LedgerError("split_between must list two or more different people")
+            if split in ("even", "half", "equal", "shared", "50/50", "50:50"):
+                parts = split_even(total, len(people))
+            else:
+                try:
+                    ratio = [float(x) for x in split.replace("/", ":").split(":")]
+                except ValueError:
+                    raise LedgerError(f"split must be 'even' or a ratio like '2:1', got {split!r}") from None
+                if len(ratio) != len(people):
+                    raise LedgerError(f"ratio {split} has {len(ratio)} parts but {len(people)} people")
+                parts = split_ratio(total, ratio)
+            return total, dict(zip(people, parts))
+        if for_person:
+            return total, {for_person: total}
+        return total, {sender: total}
+
+    def _bucket(self, a: dict) -> str | None:
+        if a.get("bucket"):
+            return a["bucket"]
+        if a.get("bucket_options"):
+            return None  # the model is unsure: Unsorted + question
+        cat = (a.get("category") or "").strip().lower()
+        if not cat:
             return None
-        out = {}
-        for k, v in shares.items():
-            p = self._person(k, ctx)
-            if p in (None, "each"):
-                raise LedgerError(f"shares must be per person, got {k!r}")
-            out[p] = v
-        return out
+        return CATEGORY_BUCKET.get(cat, DAILY)
 
     def _spend_result(self, e: dict) -> dict:
         q = None if e.get("duplicate") else replies.question(self.cfg, e)
@@ -194,20 +335,6 @@ class Tools:
             raise LedgerError("you have no entries yet")
         return rows["id"]
 
-    # ---- handlers ---------------------------------------------------------------------------------
-    def log_spend(self, a: dict, ctx: Context) -> dict:
-        part = int(a.get("part") or 1)
-        msg_id = None
-        if ctx.msg_id:
-            msg_id = ctx.msg_id if part == 1 else f"{ctx.msg_id}:{part}"
-        e = self.led.log_spend(
-            sender=self._sender(ctx), place=a.get("place", ""), total=a.get("amount"),
-            shares=self._shares(a.get("shares"), ctx), paid_by=self._person(a.get("paid_by"), ctx),
-            bucket=a.get("bucket") or None, category=a.get("category") or None, item=a.get("item") or None,
-            spent_on=a.get("date") or None, bucket_options=a.get("bucket_options") or None,
-            raw_text=a.get("raw_text"), chat_id=ctx.chat_id or None, msg_id=msg_id)
-        return self._spend_result(e)
-
     def _not_own_question(self, entry_id: int, ctx: Context) -> None:
         """An answer must come from a later message than the spend: the bot can't answer its own question."""
         e = self.led.entry(entry_id)
@@ -215,6 +342,27 @@ class Tools:
                 e["msg_id"].split(":")[0] == ctx.msg_id and e["needs"]:
             raise LedgerError(f"#{entry_id} is waiting for their answer — post the question and wait; "
                               "don't answer it yourself")
+
+    # ---- handlers ---------------------------------------------------------------------------------
+    def log_spend(self, a: dict, ctx: Context) -> dict:
+        sender = self._sender(ctx)
+        part = int(a.get("part") or 1)
+        msg_id = None
+        if ctx.msg_id:
+            msg_id = ctx.msg_id if part == 1 else f"{ctx.msg_id}:{part}"
+        payer = self._person(a.get("paid_by"), ctx)
+        # a plain spend belongs to whoever paid it ("Vanisa paid RM70 sushi" is Vanisa's, whoever types it);
+        # only a split / shares / for_person says otherwise
+        owner = payer if payer not in (None, "each") else sender
+        total, shares = self._amounts(a, ctx, owner, required=True)
+        e = self.led.log_spend(
+            sender=sender, place=a.get("place", ""), total=None if total is None else _rm(total),
+            shares={p: _rm(v) for p, v in shares.items()}, paid_by=payer,
+            bucket=self._bucket(a), category=a.get("category") or None, item=a.get("item") or None,
+            spent_on=self._day(a.get("date"), ctx), bucket_options=a.get("bucket_options") or None,
+            raw_text=textcheck.strip_reply_quote(ctx.text) if ctx.text else None,
+            chat_id=ctx.chat_id or None, msg_id=msg_id)
+        return self._spend_result(e)
 
     def answer(self, a: dict, ctx: Context) -> dict:
         entry_id = a.get("entry_id")
@@ -233,9 +381,17 @@ class Tools:
         entry_id = int(a["entry_id"]) if a.get("entry_id") is not None else self._latest(ctx)
         if a.get("paid_by") or a.get("bucket"):
             self._not_own_question(entry_id, ctx)
-        e = self.led.edit(entry_id, place=a.get("place"), item=a.get("item"), total=a.get("amount"),
-                          shares=self._shares(a.get("shares"), ctx), paid_by=self._person(a.get("paid_by"), ctx),
-                          bucket=a.get("bucket"), category=a.get("category"), spent_on=a.get("date"))
+        old = self.led.entry(entry_id)
+        total, shares = self._amounts(a, ctx, old["sender"], required=False)
+        if shares is not None and not (a.get("shares") or a.get("split") or a.get("for_person")):
+            # "wrong, should be 30": same people, same proportions, new total
+            shares = dict(zip(old["shares"], split_ratio(total, list(old["shares"].values()))))
+        e = self.led.edit(entry_id, place=a.get("place"), item=a.get("item"),
+                          total=None if total is None else _rm(total),
+                          shares=None if shares is None else {p: _rm(v) for p, v in shares.items()},
+                          paid_by=self._person(a.get("paid_by"), ctx), bucket=a.get("bucket"),
+                          category=a.get("category"),
+                          spent_on=self._day(a["date"], ctx) if a.get("date") else None)
         r = self._spend_result(e)
         r["reply"] = "✏️ " + r["reply"].removeprefix("✅ ")
         return r
@@ -246,9 +402,14 @@ class Tools:
         return {"entry_id": e["id"], "reply": f"🗑️ Deleted #{e['id']} {e['place']} {fmt(e['total_sen'], self.cfg.currency)}"}
 
     def settle_up(self, a: dict, ctx: Context) -> dict:
+        amount = None
+        if a.get("amount") not in (None, ""):
+            sen = self._sen(a["amount"], "amount")
+            self._verify(ctx, {"amount": sen})
+            amount = _rm(sen)
         r = self.led.settle(from_person=self._person(a.get("from_person"), ctx),
-                            to_person=self._person(a.get("to_person"), ctx), amount=a.get("amount"),
-                            chat_id=ctx.chat_id or None, msg_id=ctx.msg_id or None)
+                            to_person=self._person(a.get("to_person"), ctx), amount=amount,
+                            on=self._sent_day(ctx), chat_id=ctx.chat_id or None, msg_id=ctx.msg_id or None)
         if r["duplicate"]:
             return {"reply": "Already recorded."}
         names = self.cfg.people
@@ -260,37 +421,41 @@ class Tools:
         bills = a.get("bills") or []
         if not bills:
             raise LedgerError("which bill — house or car?")
-        lines = [replies.fixed_reply(self.cfg, self.led.pay_fixed(person, b, a.get("month"))) for b in bills]
+        month = a.get("month") or month_key(self._sent_day(ctx))
+        lines = [replies.fixed_reply(self.cfg, self.led.pay_fixed(person, b, month)) for b in bills]
         return {"reply": "\n".join(lines)}
 
     def set_plan(self, a: dict, ctx: Context) -> dict:
-        r = self.led.set_plan(a.get("bucket", ""), a.get("amount"), self._person(a.get("person"), ctx), a.get("month"))
+        sen = self._sen(a.get("amount"), "amount")
+        self._verify(ctx, {"amount": sen})
+        r = self.led.set_plan(a.get("bucket", ""), _rm(sen), self._person(a.get("person"), ctx), a.get("month"))
         names = " & ".join(self.cfg.people[p].name for p in r["people"])
-        return {"reply": f"📝 {self.cfg.buckets[r['bucket']].label} = {fmt(r['amount'], self.cfg.currency)} "
-                         f"for {names} from {r['month']}"}
+        b = self.cfg.buckets[r["bucket"]]
+        per = " per week" if b.kind == "weekly" else ""
+        return {"reply": f"📝 {b.label} = {fmt(r['amount'], self.cfg.currency)}{per} for {names} from {r['month']}"}
 
     def status(self, a: dict, ctx: Context) -> dict:
         st = self.led.status(a.get("month"))
-        return {"reply": replies.status_text(self.cfg, st, self._person(a.get("person"), ctx))}
+        person = self._person(a.get("person"), ctx)
+        bucket = a.get("bucket")
+        if bucket:
+            b = next((x for x in self.cfg.buckets.values() if bucket.strip().lower() in (x.key, x.label.lower())), None)
+            if b is None:
+                raise LedgerError(f"unknown bucket {bucket!r}")
+            return {"reply": replies.bucket_text(self.cfg, st, b.key, person)}
+        return {"reply": replies.status_text(self.cfg, st, person)}
 
     def list_spends(self, a: dict, ctx: Context) -> dict:
-        rows = self.led.list_entries(a.get("month") or month_key(self.led.today()), self._person(a.get("person"), ctx),
-                                     a.get("bucket"), a.get("category"), self._person(a.get("paid_by"), ctx),
-                                     a.get("query"))
-        c = self.cfg.currency
-        limit = int(a.get("limit") or 30)
-        lines = [f"#{r['id']} {r['spent_on']} {r['place']} {fmt(r['total_sen'], c)} "
-                 f"[{self.cfg.buckets[r['bucket']].label if r['bucket'] else 'Unsorted'}"
-                 f"{' · ' + r['category'] if r['category'] else ''}] "
-                 + " · ".join(f"{self.cfg.people[p].name} {fmt(v, c)}" for p, v in r["shares"].items())
-                 for r in rows[:limit]]
+        month = a.get("month") or month_key(self._sent_day(ctx))
         person = self._person(a.get("person"), ctx)
-        total = sum(r["shares"].get(person, 0) if person else r["total_sen"] for r in rows)
-        return {"count": len(rows), "total": fmt(total, c), "entries": lines}
+        rows = self.led.list_entries(month, person, a.get("bucket"), a.get("category"),
+                                     self._person(a.get("paid_by"), ctx), a.get("query"))
+        return {"count": len(rows),
+                "reply": replies.spends_text(self.cfg, rows, month, person, a, int(a.get("limit") or 15))}
 
     def pending(self, a: dict, ctx: Context) -> dict:
-        items = [replies.question(self.cfg, self.led.entry(p["id"])) for p in self.led.pending()]
-        return {"count": len(items), "pending": items}
+        qs = [replies.question(self.cfg, self.led.entry(p["id"])) for p in self.led.pending()]
+        return {"count": len(qs), "reply": "\n".join(q["text"] for q in qs) or "Nothing waiting ✓"}
 
     def lookup_place(self, a: dict, ctx: Context) -> dict:
         return {"place": self.led.lookup_place(a.get("name", ""))}

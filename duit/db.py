@@ -79,6 +79,19 @@ CREATE TABLE IF NOT EXISTS fixed_payments (
     PRIMARY KEY (month, person, bucket)
 );
 
+-- Every tool call: who, which message, what the model asked for, what the ledger did.
+CREATE TABLE IF NOT EXISTS audit (
+    id         INTEGER PRIMARY KEY,
+    at         TEXT NOT NULL,
+    tool       TEXT NOT NULL,
+    sender     TEXT,
+    chat_id    TEXT,
+    msg_id     TEXT,
+    args       TEXT NOT NULL,      -- JSON from the model
+    result     TEXT NOT NULL,      -- JSON returned
+    ok         INTEGER NOT NULL
+);
+
 -- Learned places: "sushimentai" -> Sushi-Mentai / Food / daily.
 CREATE TABLE IF NOT EXISTS places (
     key      TEXT PRIMARY KEY,              -- normalised name

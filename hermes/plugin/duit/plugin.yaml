@@ -1,4 +1,8 @@
 name: duit
-version: 0.1.0
-description: "Couple spending ledger tools (duit_*). The sender, chat and message id come from the gateway, never the model."
+version: 0.2.0
+description: "Couple spending ledger tools (duit_*). Sender/chat/message/text come from the gateway; amounts are checked against the message; replies are the ledger's own text."
 author: hanzong111
+hooks:
+  - pre_gateway_dispatch
+  - pre_llm_call
+  - transform_llm_output

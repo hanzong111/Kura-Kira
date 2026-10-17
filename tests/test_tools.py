@@ -128,7 +128,8 @@ def test_list_spends(tools):
     tools.call("duit_log_spend", {"place": "Zapfan", "shares": {"hanz": 13.2, "vanisa": 14.5}, "paid_by": "hanz",
                                   "bucket": "daily", "category": "Food"}, ctx("hanz", 5))
     r = tools.call("duit_list_spends", {"category": "food", "person": "hanz"}, HANZ)
-    assert r["count"] == 2 and r["total"] == "RM69.70"
+    assert r["count"] == 2
+    assert r["reply"].splitlines()[0] == "🔎 October 2026 · Hanz · Food: 2 spends, total RM69.70"
 
 
 def test_plugin_registers_and_reads_session_env(monkeypatch, tmp_path):
@@ -145,6 +146,9 @@ def test_plugin_registers_and_reads_session_env(monkeypatch, tmp_path):
         def register_tool(self, name, toolset, schema, handler, **kw):
             assert toolset == "duit"
             registered[name] = handler
+
+        def register_hook(self, name, fn):
+            pass
 
     mod.register(FakeCtx())
     assert "duit_log_spend" in registered

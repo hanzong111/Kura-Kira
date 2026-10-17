@@ -1,4 +1,9 @@
-"""Quick look at the ledger from the terminal: `python -m duit status [YYYY-MM]`."""
+"""Ledger from the terminal:
+    python -m duit status [YYYY-MM]   month overview
+    python -m duit json [YYYY-MM]     raw status JSON
+    python -m duit check              invariant checks (exit 1 on problems)
+    python -m duit backup             online backup to data/backups (keeps 30)
+"""
 
 import json
 import sys
@@ -36,6 +41,15 @@ def main(argv: list[str]) -> int:
               f"{fmt(owes['amount'], c)}" if owes else "settled")
         if st["pending"]:
             print(f"Needs answer: {len(st['pending'])}")
+    elif cmd == "check":
+        from .integrity import check
+        problems = check(led.conn, cfg)
+        print("\n".join(problems) if problems else "ledger OK ✓")
+        return 1 if problems else 0
+    elif cmd == "backup":
+        from .config import ROOT
+        from .integrity import backup
+        print(backup(led.conn, ROOT / "data" / "backups"))
     elif cmd == "json":
         print(json.dumps(led.status(argv[1] if len(argv) > 1 else None), indent=2))
     else:

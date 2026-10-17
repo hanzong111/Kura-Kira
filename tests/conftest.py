@@ -20,6 +20,13 @@ class Clock:
         return self.now
 
 
+@pytest.fixture(autouse=True)
+def _isolated(monkeypatch, tmp_path):
+    """Tests never touch the real config.toml or ledger."""
+    monkeypatch.setenv("DUIT_CONFIG", str(config.ROOT / "config.example.toml"))
+    monkeypatch.setenv("DUIT_DB", str(tmp_path / "test.db"))
+
+
 @pytest.fixture
 def cfg():
     return config.load(config.ROOT / "config.example.toml")
