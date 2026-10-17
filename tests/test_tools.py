@@ -71,7 +71,7 @@ def test_split_without_payer_question_then_answer(tools):
 
 def test_answer_without_id_needs_single_pending(tools):
     tools.call("duit_log_spend", {"place": "Decathlon", "amount": 120, "bucket_options": ["daily", "extra"]}, VANISA)
-    tools.call("duit_log_spend", {"place": "Watsons", "amount": 75, "bucket_options": ["chuchu", "extra"]},
+    tools.call("duit_log_spend", {"place": "Uniqlo", "amount": 75, "bucket_options": ["daily", "extra"]},
                ctx("vanisa", 9))
     r = tools.call("duit_answer", {"bucket": "daily"}, VANISA)
     assert "2 entries are waiting" in r["error"] and "#1 Decathlon" in r["error"]

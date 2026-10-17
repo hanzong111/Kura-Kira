@@ -1,0 +1,129 @@
+name|aliases|bucket|category
+Petronas|petronas station;mesra;petronas mesra|petrol|Transport
+Shell|shell station;shell select|petrol|Transport
+Petron|petron station|petrol|Transport
+BHPetrol|bhp;bh petrol;bhpetrol station|petrol|Transport
+Caltex|caltex station|petrol|Transport
+FIVE Petroleum|five;five petrol;five station|petrol|Transport
+Setel|setel app;setel fuel|petrol|Transport
+petrol|isi petrol;pump petrol;fuel;isi minyak|petrol|Transport
+minyak|isi minyak;minyak kereta;minyak moto|petrol|Transport
+RON95|ron 95;ron95 subsidi;budi95|petrol|Transport
+RON97|ron 97|petrol|Transport
+RON100|ron 100;blaze 100|petrol|Transport
+diesel|disel;euro5 diesel;b10;b20|petrol|Transport
+V-Power|vpower;shell v-power|petrol|Transport
+Primax|primax 95;primax 97|petrol|Transport
+Blaze|petron blaze|petrol|Transport
+Ultimaxx|five ultimaxx|petrol|Transport
+toll|tol;bayar tol;toll charge;tol charge|toll|Transport
+Touch 'n Go|tng;touch n go;tng reload;reload tng;topup tng;tng card;touchngo|toll|Transport
+SmartTAG|smart tag;smarttag|toll|Transport
+RFID|rfid tol;rfid reload;rfid toll|toll|Transport
+PLUS|plus highway;plus toll;lebuhraya utara selatan;nse|toll|Transport
+LDP|lebuhraya damansara puchong;damansara-puchong|toll|Transport
+SPRINT|sprint highway;penchala link|toll|Transport
+DUKE|duke highway;duta-ulu klang;duke 2;duke 3|toll|Transport
+SMART|smart tunnel;smart highway|toll|Transport
+NKVE|new klang valley expressway|toll|Transport
+ELITE|elite highway;north-south expressway central link|toll|Transport
+MEX|maju expressway;mex highway|toll|Transport
+Besraya|besraya highway;sungai besi highway|toll|Transport
+SUKE|sungai besi-ulu klang;suke highway|toll|Transport
+DASH|damansara-shah alam;dash highway|toll|Transport
+KESAS|kesas highway;shah alam expressway|toll|Transport
+NPE|new pantai expressway;npe highway|toll|Transport
+GCE|guthrie corridor expressway;guthrie|toll|Transport
+LATAR|latar highway;kuala lumpur-kuala selangor expressway|toll|Transport
+AKLEH|akleh highway;ampang elevated highway|toll|Transport
+SKVE|south klang valley expressway|toll|Transport
+LEKAS|kajang-seremban highway|toll|Transport
+SILK|kajang dispersal link;silk highway|toll|Transport
+KL-Karak|karak highway;kl karak;lpt|toll|Transport
+KLK|kl-kuala selangor|toll|Transport
+Grand Saga|cheras-kajang highway;grand saga highway|toll|Transport
+KLIA Expressway|elite klia;maju klia|toll|Transport
+WCE|west coast expressway|toll|Transport
+Grab|grabcar;grab car;grab ride;grabtaxi|daily|Transport
+inDrive|indriver;in drive|daily|Transport
+AirAsia Ride|airasia ride;aa ride|daily|Transport
+MyCar|my car ehailing|daily|Transport
+Maxim|maxim ride|daily|Transport
+EzCab|ez cab|daily|Transport
+taxi|teksi;cab|daily|Transport
+e-hailing|ehailing;e hailing|daily|Transport
+LRT|lrt kelana jaya;lrt ampang;lrt3;lrt shah alam|daily|Transport
+MRT|mrt kajang;mrt putrajaya|daily|Transport
+KTM|ktm komuter;komuter;ets;ktm ets|daily|Transport
+Monorail|kl monorail|daily|Transport
+Rapid KL|rapidkl;rapid bus;my50;my30|daily|Transport
+BRT Sunway|brt;sunway brt|daily|Transport
+KLIA Ekspres|klia express;klia transit|daily|Transport
+bus|bas;go kl;smart selangor bus;mrt feeder|daily|Transport
+parking|parkir;letak kereta;parking fee;bayar parking|daily|Transport
+Flexi Parking|flexiparking;flexi park|daily|Transport
+JomParking|jom parking|daily|Transport
+Smart Selangor Parking|ssp;smart selangor;selangor parking|daily|Transport
+Wilayah Parking|wilayah park|daily|Transport
+EZ KL Smart Park|ezkl;ez kl parking|daily|Transport
+MPAJ Parking|mpaj parking|daily|Transport
+saman|compound;parking saman;saman parking|daily|Transport
+Watsons|watson|chuchu|Toiletries
+Guardian|guardian pharmacy|chuchu|Toiletries
+Sasa|sasa cosmetics|chuchu|Toiletries
+Sephora|sephora malaysia|daily|Shopping
+shampoo|syampu;conditioner|chuchu|Toiletries
+soap|sabun;body wash;shower gel|chuchu|Toiletries
+toothpaste|ubat gigi;toothbrush;berus gigi;colgate;darlie|chuchu|Toiletries
+tissue|tisu;toilet paper;wet tissue|chuchu|Toiletries
+deodorant|deo;roll on|chuchu|Toiletries
+sanitary pad|pad;tuala wanita;kotex;laurier|chuchu|Toiletries
+skincare|facial wash;cleanser;moisturiser;sunscreen;sunblock|chuchu|Toiletries
+mouthwash|listerine|chuchu|Toiletries
+razor|pisau cukur;gillette|chuchu|Toiletries
+cotton|cotton pad;cotton bud|chuchu|Toiletries
+lotion|body lotion|chuchu|Toiletries
+toiletries|toiletry;barang mandi|chuchu|Toiletries
+Caring Pharmacy|caring|daily|Health
+AA Pharmacy|aa pharma|daily|Health
+Big Pharmacy|big pharma|daily|Health
+Alpro Pharmacy|alpro|daily|Health
+Georgetown Pharmacy|georgetown|daily|Health
+Wellings Pharmacy|wellings|daily|Health
+pharmacy|farmasi;chemist|daily|Health
+medicine|ubat;panadol;ubat batuk;ubat demam;vitamin|daily|Health
+clinic|klinik;doctor;doktor;gp;klinik panel|daily|Health
+dentist|doktor gigi;dental;scaling;klinik gigi|daily|Health
+hospital|hospital fee;specialist|daily|Health
+Qualitas|klinik qualitas|daily|Health
+optometrist|optical;spec;cermin mata;contact lens|daily|Health
+physio|physiotherapy;fisioterapi|daily|Health
+Pet Lovers Centre|plc;pet lovers;petlovers|chuchu|Pet
+Pets Wonderland|pet wonderland;petswonderland|chuchu|Pet
+Petsmore|pets more|chuchu|Pet
+Pet Safari|petsafari|chuchu|Pet
+pet shop|petshop;kedai haiwan;pet store|chuchu|Pet
+vet|veterinar;vet clinic;klinik haiwan;klinik veterinar;animal clinic;animal hospital|chuchu|Pet
+vaccine cat|vaksin kucing;cat vaccine;deworm;spay;neuter|chuchu|Pet
+grooming|pet grooming;cat grooming;mandi kucing|chuchu|Pet
+cat boarding|pet hotel;pet boarding;tumpang kucing|chuchu|Pet
+cat food|makanan kucing;kibble;wet food;dry food;cat treat|chuchu|Pet
+cat litter|litter;pasir kucing;tofu litter;bentonite|chuchu|Pet
+Whiskas|whiskas pouch|chuchu|Pet
+Royal Canin|rc;royalcanin|chuchu|Pet
+Purina|purina one;friskies;fancy feast;felix|chuchu|Pet
+Me-O|meo;me o|chuchu|Pet
+Kit Cat|kitcat|chuchu|Pet
+Smartheart|smart heart|chuchu|Pet
+Absolute Holistic|absolute|chuchu|Pet
+Taste of the Wild|totw|chuchu|Pet
+Brit Care|brit|chuchu|Pet
+Monge|monge cat|chuchu|Pet
+Aatas Cat|aatas|chuchu|Pet
+Ciao|ciao churu;churu|chuchu|Pet
+Hill's|hills science diet;hills|chuchu|Pet
+Orijen|orijen cat|chuchu|Pet
+Acana|acana cat|chuchu|Pet
+Pro Diet|prodiet|chuchu|Pet
+Cature|cature litter|chuchu|Pet
+cat toy|mainan kucing;scratcher;cat tree|chuchu|Pet

@@ -181,10 +181,11 @@ text = "decathlon 120"
 expect = { kind = "spend", amount = 120, asked = true }
 
 [[case]]
-id = "watsons-unclear"
+id = "watsons-known"
 sender = "vanisa"
 text = "watsons 75"
-expect = { kind = "spend", amount = 75, asked = true }
+expect = { kind = "spend", amount = 75, bucket = "chuchu" }
+note = "the couple taught watson = toiletries; the catalogue knows it too"
 
 [[case]]
 id = "missing-amount"

@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any, Callable
 
-from . import replies, textcheck
+from . import catalogue, replies, textcheck
 from .config import DAILY, Config
 from .ledger import Ledger, LedgerError
 from .money import fmt, parse_amount, split_even, split_ratio
@@ -312,15 +312,24 @@ class Tools:
             return total, {for_person: total}
         return total, {sender: total}
 
-    def _bucket(self, a: dict) -> str | None:
+    def _classify(self, a: dict) -> tuple[str | None, str | None, str]:
+        """(bucket, category, source). Order: the model's sure bucket > places the couple taught the bot >
+        the merchant catalogue > ask (the model was unsure) > the category's usual bucket."""
+        category = a.get("category") or None
         if a.get("bucket"):
-            return a["bucket"]
+            return a["bucket"], category, "model"
+        place = a.get("place", "")
+        learned = self.led.lookup_place(place)
+        if learned and learned["bucket"]:
+            return None, category, "learned"  # the ledger applies what it learned
+        m = catalogue.lookup(place)
+        if m:
+            return m.bucket, category or m.category, "catalogue"
         if a.get("bucket_options"):
-            return None  # the model is unsure: Unsorted + question
-        cat = (a.get("category") or "").strip().lower()
-        if not cat:
-            return None
-        return CATEGORY_BUCKET.get(cat, DAILY)
+            return None, category, "ask"
+        if category:
+            return CATEGORY_BUCKET.get(category.strip().lower(), DAILY), category, "category"
+        return None, category, "ask"
 
     def _spend_result(self, e: dict) -> dict:
         q = None if e.get("duplicate") else replies.question(self.cfg, e)
@@ -355,10 +364,11 @@ class Tools:
         # only a split / shares / for_person says otherwise
         owner = payer if payer not in (None, "each") else sender
         total, shares = self._amounts(a, ctx, owner, required=True)
+        bucket, category, _ = self._classify(a)
         e = self.led.log_spend(
             sender=sender, place=a.get("place", ""), total=None if total is None else _rm(total),
             shares={p: _rm(v) for p, v in shares.items()}, paid_by=payer,
-            bucket=self._bucket(a), category=a.get("category") or None, item=a.get("item") or None,
+            bucket=bucket, category=category, item=a.get("item") or None,
             spent_on=self._day(a.get("date"), ctx), bucket_options=a.get("bucket_options") or None,
             raw_text=textcheck.strip_reply_quote(ctx.text) if ctx.text else None,
             chat_id=ctx.chat_id or None, msg_id=msg_id)

@@ -1,0 +1,221 @@
+name|aliases|bucket|category
+McDonald's|mcd;mcdonalds;mcdonald;mekdi;mcdelivery|daily|Food
+KFC|kentucky|daily|Food
+Burger King|bk;burgerking|daily|Food
+Marrybrown|marry brown|daily|Food
+Texas Chicken|texas|daily|Food
+A&W|anw;a and w|daily|Food
+Subway|subway sandwich|daily|Food
+Pizza Hut|pizzahut|daily|Food
+Domino's|dominos;domino;dominos pizza|daily|Food
+Kenny Rogers Roasters|kenny rogers;krr|daily|Food
+4Fingers|4 fingers;four fingers|daily|Food
+Wingstop|wing stop|daily|Food
+Shihlin Taiwan Street Snacks|shihlin;shilin|daily|Food
+Nando's|nandos;nando|daily|Food
+The Chicken Rice Shop|chicken rice shop;tcrs|daily|Food
+Ayam Penyet RIA|penyet ria|daily|Food
+Ayam Gepuk Pak Gembus|pak gembus;ayam gepuk|daily|Food
+Secret Recipe|secretrecipe|daily|Food
+Sushi King|sushiking|daily|Food
+Sushi Mentai|sushimentai;mentai|daily|Food
+Sushi Zanmai|zanmai;sushizanmai|daily|Food
+Sakae Sushi|sakae|daily|Food
+Empire Sushi|empiresushi|daily|Food
+Sushi Tei|sushitei|daily|Food
+Sukiya|sukiya gyudon;sukiya beef bowl|daily|Food
+Yoshinoya|yoshinoya gyudon|daily|Food
+Pepper Lunch|pepperlunch|daily|Food
+Yayoi|yayoi japanese|daily|Food
+Ippudo|ippudo ramen|daily|Food
+Santouka|hokkaido ramen santouka;santouka ramen|daily|Food
+Marutama Ramen|marutama|daily|Food
+Rakuzen|rakuzen japanese|daily|Food
+Tonkatsu by Ma Maison|ma maison;tonkatsu ma maison|daily|Food
+Seoul Garden|seoulgarden|daily|Food
+Kyochon|kyochon chicken|daily|Food
+Nene Chicken|nene|daily|Food
+Chir Chir|chirchir|daily|Food
+K Fry|kfry;k-fry|daily|Food
+Dubuyo|dubuyo korean|daily|Food
+Myeongdong Topokki|myeongdong;myeong dong topokki|daily|Food
+Dookki|dookki topokki|daily|Food
+Palsaik|palsaik bbq;8 colours bbq|daily|Food
+Ssikkek|ssikkek bbq|daily|Food
+Daorae|daorae korean bbq|daily|Food
+Absolute Thai|absolutethai|daily|Food
+Bar.B.Q Plaza|bbq plaza;barbq plaza|daily|Food
+Tony Roma's|tony romas;tony roma|daily|Food
+Chili's|chilis|daily|Food
+The Manhattan Fish Market|manhattan fish market;manhattan;tmfm|daily|Food
+Fish & Co|fish and co;fish&co;fishnco|daily|Food
+Uncle Don's|uncle dons|daily|Food
+Morganfield's|morganfields;morganfield|daily|Food
+Marble 8|marble8|daily|Food
+Dave's Deli|daves deli|daily|Food
+Shell Out|shellout|daily|Food
+Wondermama|wonder mama|daily|Food
+Madam Kwan's|madam kwan;madam kwans|daily|Food
+Little Penang Kafe|little penang|daily|Food
+Nyonya Colors|nyonya colours|daily|Food
+Village Park Restaurant|village park;nasi lemak village park|daily|Food
+Nasi Lemak Antarabangsa|antarabangsa|daily|Food
+Din Tai Fung|dtf;dintaifung|daily|Food
+Paradise Dynasty|paradise dynasty xlb|daily|Food
+Dragon-i|dragon i;dragoni|daily|Food
+Canton-i|canton i;cantoni|daily|Food
+Tim Ho Wan|timhowan|daily|Food
+Dolly Dim Sum|dolly;dollydimsum|daily|Food
+Foo Hing Dim Sum|foo hing|daily|Food
+Wong Kok Char Chan Teng|wong kok;wongkok|daily|Food
+Super Kitchen Chilli Pan Mee|super kitchen;chilli pan mee|daily|Food
+Kin Kin Pan Mee|kin kin;kinkin|daily|Food
+Kim Lian Kee|kim lian kee hokkien mee|daily|Food
+Haidilao|hai di lao;hdl;haidilao hotpot|daily|Food
+Xiao Long Kan|xiaolongkan;xlk|daily|Food
+Beutea|beutea hotpot|daily|Food
+Shu Guo Yin Xiang|shuguoyinxiang;sgyx|daily|Food
+Suki-Ya|suki ya;sukiya steamboat|daily|Food
+OldTown White Coffee|oldtown;old town|daily|Food
+PappaRich|pappa rich|daily|Food
+Hailam Kopitiam|hailam|daily|Food
+Pak Li Kopitiam|pak li|daily|Food
+Kluang Station|kluang rail coffee|daily|Food
+Killiney Kopitiam|killiney|daily|Food
+Ya Kun Kaya Toast|ya kun;yakun|daily|Food
+Toast Box|toastbox|daily|Food
+Nam Heong|nam heong white coffee|daily|Food
+Nasi Kandar Pelita|pelita|daily|Food
+Restoran Hameed's|hameeds;hameed;hameed's|daily|Food
+Kayu Nasi Kandar|kayu|daily|Food
+Nasi Kandar Line Clear|line clear|daily|Food
+Ali Maju|alimaju|daily|Food
+Q Bistro|qbistro|daily|Food
+Sri Nirwana Maju|sri nirwana|daily|Food
+Sate Kajang Haji Samuri|haji samuri;sate kajang|daily|Food
+ZUS Coffee|zus;zuscoffee|daily|Food
+Starbucks|sbux;starbuck|daily|Food
+Kopi Kenangan|kenangan;kenangan coffee|daily|Food
+Gigi Coffee|gigi;gigicoffee|daily|Food
+Bask Bear Coffee|bask bear;baskbear|daily|Food
+Luckin Coffee|luckin|daily|Food
+Tim Hortons|tim horton;timhortons|daily|Food
+The Coffee Bean & Tea Leaf|coffee bean;cbtl|daily|Food
+San Francisco Coffee|sfc;san francisco|daily|Food
+Dome Cafe|dome|daily|Food
+HWC Coffee|hwc|daily|Food
+Oriental Kopi|orientalkopi|daily|Food
+McCafe|mc cafe|daily|Food
+Tealive|tea live|daily|Food
+Chatime|cha time|daily|Food
+Chagee|cha gee;bawang chaji|daily|Food
+Mixue|mixue ice cream|daily|Food
+Tiger Sugar|tigersugar|daily|Food
+Daboba|da boba|daily|Food
+Xing Fu Tang|xingfutang;xft|daily|Food
+The Alley|thealley|daily|Food
+KOI The|koi|daily|Food
+Gong Cha|gongcha|daily|Food
+Coolblog|cool blog|daily|Food
+Each A Cup|eachacup|daily|Food
+Sharetea|share tea|daily|Food
+Yi Fang|yifang;yi fang fruit tea|daily|Food
+Bober Tea|bober|daily|Food
+ChaPanda|cha panda|daily|Food
+Llaollao|llao llao|daily|Food
+Inside Scoop|insidescoop|daily|Food
+Baskin Robbins|baskin|daily|Food
+Haagen-Dazs|haagen dazs|daily|Food
+Auntie Anne's|auntie annes;auntie anne|daily|Food
+Famous Amos|famousamos|daily|Food
+J.CO Donuts|jco;j.co|daily|Food
+Krispy Kreme|krispykreme|daily|Food
+Dunkin'|dunkin;dunkin donuts|daily|Food
+Big Apple Donuts|big apple|daily|Food
+Rotiboy|roti boy|daily|Food
+BreadTalk|bread talk|daily|Food
+Tous Les Jours|tlj;touslesjours|daily|Food
+Lavender Bakery|lavender|daily|Food
+Komugi|komugi bakery|daily|Food
+Baker's Cottage|bakers cottage|daily|Food
+Hutong Food Court|lot 10 hutong;hutong|daily|Food
+GrabFood|grab food;grabfood order|daily|Food
+foodpanda|food panda|daily|Food
+ShopeeFood|shopee food|daily|Food
+food court|foodcourt;medan selera|daily|Food
+mamak|mamak stall|daily|Food
+kopitiam|kopi tiam;coffee shop|daily|Food
+hawker|hawker stall;gerai|daily|Food
+nasi lemak|naslem;nasilemak|daily|Food
+char kuey teow|ckt;char kway teow;char koay teow|daily|Food
+roti canai|roti;roti telur;roti kosong|daily|Food
+chicken rice|nasi ayam;chic rice|daily|Food
+economy rice|chap fan;zap fan;zapfan;jap fan;cai fan|daily|Food
+nasi campur|nasi kawah|daily|Food
+nasi kandar|nasikandar|daily|Food
+nasi goreng|nasgor;fried rice|daily|Food
+mee goreng|mee goreng mamak;fried noodles|daily|Food
+maggi goreng|maggi;maggie goreng|daily|Food
+yong tau foo|ytf;yong tau fu|daily|Food
+bak kut teh|bkt;bakkutteh|daily|Food
+banana leaf|banana leaf rice|daily|Food
+dim sum|dimsum|daily|Food
+laksa|curry laksa;asam laksa|daily|Food
+curry mee|curry noodle|daily|Food
+pan mee|ban mian;panmee|daily|Food
+satay|sate|daily|Food
+wantan mee|wanton mee;wonton mee;wan tan mee|daily|Food
+hokkien mee|hokkien mee kl|daily|Food
+prawn mee|hae mee|daily|Food
+lor mee||daily|Food
+claypot chicken rice|claypot|daily|Food
+hainanese chicken rice|hainan chicken rice|daily|Food
+roast duck|siew ngap;duck rice|daily|Food
+char siu|char siew;siu yuk;roast pork|daily|Food
+fishball noodle|fish ball noodle|daily|Food
+chee cheong fun|ccf|daily|Food
+popiah|popiah basah|daily|Food
+rojak|pasembur|daily|Food
+cendol|chendol|daily|Food
+ais kacang|abc;air batu campur|daily|Food
+murtabak|martabak|daily|Food
+thosai|dosa;tosai|daily|Food
+tandoori|tandoori chicken;naan|daily|Food
+nasi kerabu|kerabu|daily|Food
+nasi dagang|dagang|daily|Food
+nasi kukus|kukus|daily|Food
+nasi ayam penyet|ayam penyet|daily|Food
+ayam goreng|fried chicken|daily|Food
+mee rebus||daily|Food
+mee bandung|bandung mee|daily|Food
+mee kari||daily|Food
+soto ayam|soto|daily|Food
+lontong||daily|Food
+tomyam|tom yam;tom yum|daily|Food
+steamboat|hotpot;hot pot;mala hotpot|daily|Food
+mala|mala xiang guo;mala tang|daily|Food
+mookata|moo kata|daily|Food
+korean bbq|kbbq|daily|Food
+sushi|sashimi|daily|Food
+ramen||daily|Food
+burger|burger bakar;ramly burger|daily|Food
+pizza||daily|Food
+dinner|makan malam|daily|Food
+lunch|makan tengahari|daily|Food
+breakfast|sarapan|daily|Food
+supper|late night supper|daily|Food
+teh tarik|teh;teh ais;teh o|daily|Food
+kopi|kopi o;kopi peng;kopi ais;white coffee|daily|Food
+milo|milo ais;milo dinosaur|daily|Food
+bubble tea|boba;bbt;pearl milk tea|daily|Food
+coffee|latte;americano;cappuccino|daily|Food
+kuih|kuih muih;kueh|daily|Food
+pisang goreng|goreng pisang;cucur|daily|Food
+apam balik|apam;ban chang kuih|daily|Food
+seafood|ikan bakar;seafood dinner|daily|Food
+zi char|tai chow;dai chow;tai chau|daily|Food
+fish head noodle|fish head bihun|daily|Food
+chili pan mee|chilli ban mian|daily|Food
+loh bak|lobak|daily|Food
+yam rice||daily|Food
+cafe|café;kafe;brunch|daily|Food

@@ -276,24 +276,24 @@ def test_interpret_answers(cfg, reply, needs, options, expected):
 def test_plugin_applies_answer_in_code_and_reasks_on_silence(plugin, monkeypatch):
     mod, hooks, tools_ = plugin
     tools = mod._get_tools()
-    log = tools.call("duit_log_spend", {"place": "watson", "amount": "RM 74", "category": "Shopping",
+    log = tools.call("duit_log_spend", {"place": "Vanity Box", "amount": "RM 74", "category": "Shopping",
                                         "bucket_options": ["chuchu", "daily", "extra"]},
-                     Context(sender_telegram_id="111", chat_id="g", msg_id="18", text="watson RM 74"))
+                     Context(sender_telegram_id="111", chat_id="g", msg_id="18", text="vanity box RM 74"))
     question = log["question"]["text"]
 
     class Src:
         user_id, chat_id = "111", "g"
 
     class Answer:
-        message_id, text, raw_message, source = "77", "Toiletries , remember watson = toiletries", None, Src()
+        message_id, text, raw_message, source = "77", "Toiletries , remember vanity box = toiletries", None, Src()
         reply_to_is_own_message, reply_to_text = True, question
 
     hooks["pre_gateway_dispatch"](event=Answer())
     e = tools.led.entry(1)
     assert (e["bucket"], e["category"], e["needs"]) == ("chuchu", "Toiletries", [])
     final = hooks["transform_llm_output"](response_text="NO_REPLY")       # the model said nothing useful
-    assert final.startswith("✅ #1 watson · Chu Chu / Toiletries · RM74.00")
-    assert tools.led.lookup_place("Watsons")["bucket"] == "chuchu"          # remembered
+    assert final.startswith("✅ #1 Vanity Box · Chu Chu / Toiletries · RM74.00")
+    assert tools.led.lookup_place("vanity box")["bucket"] == "chuchu"       # remembered
 
     # an unclear reply the model also ignores -> code re-asks instead of a Hermes warning
     log2 = tools.call("duit_log_spend", {"place": "Decathlon", "amount": "120", "bucket_options": ["daily", "extra"]},

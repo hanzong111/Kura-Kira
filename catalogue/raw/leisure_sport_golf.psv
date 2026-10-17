@@ -1,0 +1,208 @@
+name|aliases|bucket|category
+Golden Screen Cinemas|gsc;gsc cinema;gsc movie;golden screen|daily|Leisure
+GSC Aurum Theatre|aurum;gsc aurum;aurum theatre|daily|Leisure
+GSC Maxx|maxx;gsc imax;gsc premiere class|daily|Leisure
+TGV Cinemas|tgv;tgv cinema;tgv movie;tgv beanie;tgv indulge|daily|Leisure
+MBO Cinemas|mbo;mbo cinema;mbo movie|daily|Leisure
+LFS Cinemas|lfs;lotus five star;fst;fst cinemas|daily|Leisure
+mmCineplexes|mm cineplexes;mmc;mm cinema|daily|Leisure
+Dadi Cinema|dadi;dadi pavilion;dadi bukit jalil|daily|Leisure
+Paragon Cinemas|paragon cinema|daily|Leisure
+movie|movies;cinema;wayang;imax;popcorn|daily|Leisure
+Sunway Lagoon|lagoon;sunway lagoon theme park|daily|Leisure
+Genting SkyWorlds|skyworlds;genting theme park;genting skyworlds theme park|daily|Leisure
+Genting Skytropolis|skytropolis;genting indoor theme park|daily|Leisure
+Awana SkyWay|genting skyway;awana skyway;genting cable car|daily|Leisure
+Aquaria KLCC|aquaria;klcc aquarium|daily|Leisure
+KL Tower|menara kl;kl tower sky deck;sky box kl tower|daily|Leisure
+Petronas Twin Towers Skybridge|klcc tower;twin towers;petronas skybridge|daily|Leisure
+Skytrex Adventure|skytrex;skytrex shah alam;skytrex sungai buloh|daily|Leisure
+Escape Penang|escape theme park;escape waterpark;escape penang|daily|Leisure
+Zoo Negara|national zoo;zoo negara malaysia|daily|Leisure
+Petrosains|petrosains klcc;petrosains discovery centre|daily|Leisure
+Mines Wonderland|wonderland mines|daily|Leisure
+Legoland Malaysia|legoland;legoland johor|daily|Leisure
+Desaru Coast Adventure Waterpark|desaru waterpark;desaru coast waterpark|daily|Leisure
+Lost World of Tambun|tambun;lost world tambun|daily|Leisure
+Bukit Merah Laketown|bukit merah;bukit merah waterpark|daily|Leisure
+i-City Shah Alam|i-city;icity;i city;snowwalk;wetworld i-city|daily|Leisure
+Wet World Water Park|wet world;wetworld|daily|Leisure
+Splash Mania|splashmania;splash mania gamuda cove|daily|Leisure
+Bukit Gambang Resort City|bukit gambang;gambang waterpark|daily|Leisure
+A'Famosa Resort|afamosa;a famosa;a'famosa safari|daily|Leisure
+Kidzania Kuala Lumpur|kidzania;kidzania kl|daily|Leisure
+Kuala Lumpur Bird Park|kl bird park;bird park|daily|Leisure
+KL Butterfly Park|butterfly park|daily|Leisure
+Upside Down House|upside down house kl|daily|Leisure
+Hauntu|hauntu kl;haunted house|daily|Leisure
+SuperPark Malaysia|superpark;super park avenue k|daily|Leisure
+Jump Street Asia|jump street;jumpstreet;jump street pj|daily|Leisure
+Xction Xtreme Park|xction;xction park|daily|Leisure
+Escape PJ|escape paradigm;escape paradigm mall|daily|Leisure
+Breakout Malaysia|breakout escape room;breakout|daily|Leisure
+Escape Room|escaperoom;room escape|daily|Leisure
+District 21|district21;district 21 ioi city|daily|Leisure
+Fly Fit Ninja Park|ninja park|daily|Leisure
+Timezone|timezone arcade;tz arcade|daily|Leisure
+Jungle Club|jungle club arcade|daily|Leisure
+Cosmo's World|cosmo world;cosmos world|daily|Leisure
+Sunway Mega Lanes|mega lanes;sunway bowling|daily|Leisure
+Supreme Cosmic Bowl|cosmic bowl;mid valley bowling;supreme bowl|daily|Leisure
+Ampang Superbowl|ampang bowl;superbowl;times square bowling|daily|Leisure
+U-Bowl|ubowl;u bowl one utama|daily|Leisure
+Wangsa Bowl|wangsa walk bowling|daily|Leisure
+Ole Ole Bowl|ole ole;ole ole super bowl|daily|Leisure
+Bowling|bowling alley;tenpin|daily|Leisure
+Red Box Karaoke|red box;redbox;redbox plus;red box plus|daily|Leisure
+Green Box Karaoke|green box;greenbox|daily|Leisure
+Neway Karaoke|neway;ceo neway;neway ktv|daily|Leisure
+Loudspeaker Karaoke|loud speaker;loudspeaker;loudspeaker ktv|daily|Leisure
+Superstar Karaoke|superstar;superstar ktv|daily|Leisure
+Manekineko|manekineko karaoke;maneki neko|daily|Leisure
+Karaoke|ktv;karaoke room|daily|Leisure
+National Museum|muzium negara;national museum kl|daily|Leisure
+Islamic Arts Museum Malaysia|iamm;islamic arts museum|daily|Leisure
+National Art Gallery|balai seni negara;national visual arts gallery|daily|Leisure
+Museum of Illusions KL|museum of illusions;moi kl|daily|Leisure
+Illusion 3D Art Museum|3d art museum;illusion 3d|daily|Leisure
+Dewan Filharmonik Petronas|dfp;petronas philharmonic|daily|Leisure
+Istana Budaya|istana budaya theatre|daily|Leisure
+KLPAC|kl performing arts centre;klpac theatre|daily|Leisure
+Axiata Arena|axiata arena bukit jalil|daily|Leisure
+Bukit Jalil National Stadium|stadium bukit jalil;national stadium|daily|Leisure
+Zepp Kuala Lumpur|zepp kl;zepp|daily|Leisure
+Mega Star Arena|megastar arena|daily|Leisure
+Ticket2u|ticket 2u;ticket2u.com.my|daily|Leisure
+Cloud Ticketing|cloudticketing;cloud ticket|daily|Leisure
+Live Nation Malaysia|live nation;livenation|daily|Leisure
+TicketCharge|ticket charge|daily|Leisure
+Golden Ticket|goldenticket|daily|Leisure
+Big Tix|bigtix|daily|Leisure
+Klook|klook ticket|daily|Leisure
+Concert|concert ticket;gig ticket|daily|Leisure
+Anytime Fitness|anytime;af gym;anytime fitness gym|daily|Sport
+Celebrity Fitness|celeb fitness;cf gym;celebrity fitness gym|daily|Sport
+Fitness First|ff gym;fitness first gym;fitpass|daily|Sport
+Chi Fitness|chi gym;chi fitness gym|daily|Sport
+FireFit Studios|firefit|daily|Sport
+Jetts Fitness|jetts;jetts 24hr|daily|Sport
+Level Up Fitness|levelup fitness;level up gym|daily|Sport
+Babel Fit|babel;babel gym|daily|Sport
+Flyproject|fly project;flyproject kl|daily|Sport
+Gym|gym membership;gym fee;gym monthly|daily|Sport
+Camp5 Climbing Gym|camp5;camp 5;camp5 utropolis;camp5 kl east;camp5 1 utama|daily|Sport
+BUMP Bouldering Gym|bump;bump bouldering;bump jaya one|daily|Sport
+B-Hub Bouldering|bhub;b hub;b-hub|daily|Sport
+Bouldering|bouldering gym;climbing gym;rock climbing|daily|Sport
+222 Sports Centre|222 badminton;222 sports|daily|Sport
+IOI Sports Centre|ioi sports;ioi badminton|daily|Sport
+Courtsite|courtsite booking|daily|Sport
+Badminton Court|badminton;court booking;court fee|daily|Sport
+Sports Planet|sports planet futsal;sportsplanet|daily|Sport
+The Challenger Sports Centre|challenger futsal;challenger sports|daily|Sport
+Samba De Futsal|samba futsal|daily|Sport
+Futsal|futsal court;futsal booking|daily|Sport
+KL City Pickleball|kl city pickleball;kampung pandan pickleball|daily|Sport
+Pickle Social Club|pickle social;psc pickleball|daily|Sport
+Playa Racquet Club|playa;playa trec|daily|Sport
+SkyCourts Padel & Pickle|skycourts;sky courts|daily|Sport
+City Padel KL|city padel|daily|Sport
+The Rally Padel Club|rally padel|daily|Sport
+Jom Padel|jompadel|daily|Sport
+Playtomic|playtomic booking|daily|Sport
+Pickleball|pickleball court;pickleball booking|daily|Sport
+Padel|padel court;padel booking|daily|Sport
+Swimming Pool|swimming;pool entry;kolam renang|daily|Sport
+National Aquatic Centre|bukit jalil aquatic;pusat akuatik negara|daily|Sport
+Royal Selangor Golf Club|rsgc;royal selangor golf;rsgc golf|daily|Sport
+TPC Kuala Lumpur|tpc;tpc kl;klgcc;kuala lumpur golf & country club;kl golf & country club|daily|Sport
+Saujana Golf & Country Club|saujana;sgcc;saujana golf;saujana palm;saujana bunga raya|daily|Sport
+Kota Permai Golf & Country Club|kota permai;kpgcc|daily|Sport
+Mines Resort & Golf Club|mines golf;mines resort golf;the mines golf|daily|Sport
+Glenmarie Golf & Country Club|glenmarie;glenmarie golf|daily|Sport
+Tropicana Golf & Country Resort|tropicana golf;tropicana gcc;tgcr|daily|Sport
+Kelab Golf Sultan Abdul Aziz Shah|kgsaas;kgsaa;kelab golf shah alam;sultan abdul aziz shah golf|daily|Sport
+Bukit Jalil Golf & Country Resort|bukit jalil golf;bjgcr|daily|Sport
+Palm Garden Golf Club|palm garden;ioi palm garden;palm garden golf|daily|Sport
+Bangi Golf Resort|bangi golf;bgr|daily|Sport
+Kelab Golf Seri Selangor|seri selangor;kgss;seri selangor golf|daily|Sport
+Kinrara Golf Club|kinrara;kinrara golf|daily|Sport
+Templer Park Country Club|templer park;templer park golf;tpcc|daily|Sport
+Danau Golf Club|danau;danau golf;danau ukm|daily|Sport
+Sungai Long Golf & Country Club|sungai long golf;sg long golf;slgcc|daily|Sport
+Kajang Hill Golf & Country Club|kajang hill;kajang hill golf|daily|Sport
+Monterez Golf & Country Club|monterez;monterez golf|daily|Sport
+Bukit Kemuning Golf & Country Club|bukit kemuning;bukit kemuning golf|daily|Sport
+Kelab Golf Negara Subang|kgns;national golf club subang;subang golf|daily|Sport
+Kelab Golf Perkhidmatan Awam|kgpa;kgpa golf|daily|Sport
+Kelab Golf Angkatan Tentera|kgat;kgat golf|daily|Sport
+Kelab Golf Titiwangsa PDRM|titiwangsa golf;pdrm golf|daily|Sport
+Rahman Putra Golf & Country Club|rahman putra;rpgcc;rahman putra golf|daily|Sport
+Tasik Puteri Golf & Country Club|tasik puteri;tasik puteri golf|daily|Sport
+Bukit Beruntung Golf & Country Resort|bukit beruntung;bukit beruntung golf|daily|Sport
+Kundang Lakes Country Club|kundang lakes;kundang golf|daily|Sport
+Bukit Unggul Golf & Country Resort|bukit unggul;bukit unggul golf|daily|Sport
+Impian Golf & Country Club|impian golf;impian kajang|daily|Sport
+Royal Klang Club|rkc;royal klang golf;klang golf|daily|Sport
+Kota Seriemas Golf & Country Club|kota seriemas;seriemas golf|daily|Sport
+Nilai Springs Golf & Country Club|nilai springs;nilai golf|daily|Sport
+Seremban International Golf Club|sigc;seremban golf;seremban international|daily|Sport
+Royal Palm Springs Golf Club|royal palm springs;palm springs pd|daily|Sport
+Port Dickson Golf & Country Club|pd golf;port dickson golf|daily|Sport
+Staffield Country Resort|staffield;staffield golf|daily|Sport
+Gemas Golf Resort|gemas golf|daily|Sport
+IOI Club Bahau|bahau golf;ioi bahau|daily|Sport
+Royal Perak Golf Club|rpgc;royal perak golf|daily|Sport
+Kinta Golf Club|kinta golf|daily|Sport
+Meru Valley Golf & Country Club|meru valley;meru golf|daily|Sport
+Clearwater Sanctuary Golf Resort|clearwater;clearwater sanctuary|daily|Sport
+Damai Laut Golf & Country Club|damai laut;damai laut golf|daily|Sport
+Taiping Golf & Country Club|taiping golf|daily|Sport
+Idris Shah Golf Club|idris shah golf;teluk intan golf|daily|Sport
+Golf Club Batang Padang|batang padang golf|daily|Sport
+Pan Pacific Pangkor Island Country Club|pangkor golf|daily|Sport
+Royal Johor Country Club|rjcc;royal johor golf|daily|Sport
+Horizon Hills Golf & Country Club|horizon hills;horizon hills golf|daily|Sport
+Tanjong Puteri Golf & Country Club|tanjong puteri;tpgr|daily|Sport
+Ponderosa Golf & Country Club|ponderosa;ponderosa golf|daily|Sport
+Pulai Springs Country Club|pulai springs;pulai golf|daily|Sport
+Palm Resort Golf & Country Club|palm resort;palm resort senai|daily|Sport
+The Legends Golf & Country Resort|legends golf;the legends kulai|daily|Sport
+Permas Jaya Golf Club|permas golf;permas jaya golf|daily|Sport
+Kota Tinggi Golf Resort|kota tinggi golf|daily|Sport
+Kluang Country Club|kluang golf|daily|Sport
+Guthrie Golf & Country Club|guthrie golf|daily|Sport
+The Kukup Golf Resort|kukup golf|daily|Sport
+Daiman 18 Golf|daiman 18;daiman golf|daily|Sport
+IOI Paya Lang Golf Club|paya lang golf|daily|Sport
+Forest City Golf Resort|forest city golf|daily|Sport
+Johor Golf & Country Club|jgcc;johor golf|daily|Sport
+The Els Club Desaru Coast|els desaru;desaru golf;els club desaru|daily|Sport
+The Els Club Teluk Datai|els langkawi;els teluk datai|daily|Sport
+Allamanda Golf Course|allamanda golf|daily|Sport
+A'Famosa Golf Resort|afamosa golf;a famosa golf|daily|Sport
+Ayer Keroh Country Club|ayer keroh golf;akcc|daily|Sport
+Orna Golf & Country Club|orna golf|daily|Sport
+Tiara Melaka Golf & Country Club|tiara melaka;tiara golf|daily|Sport
+Awana Genting Highlands Golf & Country Resort|awana golf;genting golf;awana genting|daily|Sport
+Berjaya Hills Golf & Country Club|berjaya hills golf;bukit tinggi golf|daily|Sport
+Royal Pahang Golf Club|royal pahang golf;kuantan golf|daily|Sport
+Cameron Highlands Golf Club|cameron golf;kelab golf sultan ahmad shah|daily|Sport
+Fraser's Hill Golf Club|frasers hill golf|daily|Sport
+Penang Golf Club|bukit jambul golf;penang golf|daily|Sport
+Bukit Jawi Golf Resort|bukit jawi;bukit jawi golf|daily|Sport
+Royal Kedah Club|royal kedah golf|daily|Sport
+Cinta Sayang Golf & Country Resort|cinta sayang;cinta sayang golf|daily|Sport
+Gunung Raya Golf Resort|gunung raya golf|daily|Sport
+Sutera Harbour Golf & Country Club|sutera harbour golf|daily|Sport
+Dalit Bay Golf & Country Club|dalit bay golf|daily|Sport
+Borneo Golf & Country Club|borneo golf|daily|Sport
+Damai Golf & Country Club|damai golf kuching|daily|Sport
+Kelab Golf Sarawak|sarawak golf club|daily|Sport
+Kota Damansara Driving Range|kd driving range;kota damansara range|daily|Sport
+KLGCC Driving Range|tpc driving range;klgcc range;bukit kiara range|daily|Sport
+Impact Golf|impact golf range|daily|Sport
+Palm Garden Driving Range|palm garden range|daily|Sport
+Royal Selangor Club Driving Range|rsc driving range;royal selangor club|daily|Sport
+Driving Range|range balls;golf range;driving range balls|daily|Sport
+Golf|green fee;golf green fee;golf buggy;caddy fee;golfing|daily|Sport
