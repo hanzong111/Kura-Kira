@@ -8,5 +8,8 @@ dependencies = []
 [project.optional-dependencies]
 dev = ["pytest>=7"]
 
+[tool.setuptools]
+packages = ["duit"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

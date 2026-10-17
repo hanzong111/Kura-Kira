@@ -17,7 +17,7 @@ does all the maths: totals, weekly allowances, pace, balances. The model never a
 | 4 | Hermes `kura-kira` profile + Telegram group | profile created; Telegram next |
 | 5 | Cron: alerts, Sunday recap, month-end report | |
 | 6 | Trial week | |
-| 7 | Dashboard (Kopitiam pixel theme) | |
+| 7 | Dashboard (Kopitiam pixel theme) | prototype on `feat/dashboard` (`dashboard/`) |
 
 The full plan is in [docs/PLAN.md](docs/PLAN.md).
 
@@ -55,5 +55,17 @@ Hermes profile `kura-kira` (in `~/.hermes/profiles/kura-kira/`):
 
 Why a plugin and not MCP: Hermes doesn't show the model the sender's Telegram ID or the message ID,
 but plugin tools can read them from the gateway's session context. So the sender is never chosen by the model.
+
+## Dashboard
+
+```bash
+python3 -m dashboard.seed_demo                       # demo month in data/demo.db
+DUIT_DB=data/demo.db python3 -m dashboard.server     # http://localhost:8790
+dashboard/install-service.sh                         # always-on user service on the real ledger
+```
+
+Read-only, stdlib only. `dashboard/server.py` serves `/api/status`, `/api/spends`, `/api/spends.csv` and
+`/api/events` (SSE on ledger writes). Colours and fonts live in `dashboard/web/theme.css` and sprites in
+`dashboard/web/assets/`, so a new design can replace them without touching the layout (`app.css`, `app.js`).
 
 Data lives in `data/duit.db` (gitignored). Override with `DUIT_DB` / `DUIT_CONFIG`.

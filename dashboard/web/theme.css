@@ -1,0 +1,75 @@
+/* Kura-Kira theme: every colour, font and shadow lives here, so a redesign swaps this file (and assets/)
+   without touching app.css or app.js. Current look: the Kopitiam pixel style (~/kopitiam/web/pixel.css). */
+:root {
+  /* palette */
+  --ink: #24140d;
+  --ink-soft: #684632;
+  --coffee: #3a2015;
+  --coffee-dark: #1d0f0a;
+  --cream: #f8e8b5;
+  --paper: #fff7d7;
+  --paper-2: #f3dda7;
+  --paper-3: #eed59a;
+  --teal: #17665e;
+  --teal-dark: #0b3f3b;
+  --teal-light: #79b8a9;
+  --gold: #f2b544;
+  --red: #c33b2d;
+  --line: #9c7148;
+
+  /* page */
+  --page-bg: linear-gradient(45deg, #25130c 25%, transparent 25%) 0 0 / 8px 8px,
+             linear-gradient(-45deg, #25130c 25%, transparent 25%) 0 0 / 8px 8px, #321a11;
+  --page-ink: var(--ink);
+
+  /* header */
+  --header-bg: repeating-linear-gradient(90deg, rgba(255, 255, 255, .035) 0 2px, transparent 2px 8px), var(--teal-dark);
+  --header-ink: var(--cream);
+  --header-accent: var(--gold);
+  --trim: repeating-linear-gradient(90deg, var(--gold) 0 18px, var(--red) 18px 36px);
+  --brand-bg: var(--red);
+
+  /* cards */
+  --card-bg: var(--paper);
+  --card-ink: var(--ink);
+  --card-border: var(--coffee-dark);
+  --card-head-bg: var(--teal);
+  --card-head-ink: #fff0c2;
+  --card-sub-bg: var(--paper-2);
+  --rule: #d4b97e;
+  --muted: var(--ink-soft);
+
+  /* bars & status (status names come from the API: ok / ahead / over) */
+  --track: #e6d7b0;
+  --track-border: var(--coffee);
+  --ok: #3b8c4d;
+  --ahead: #e0a526;
+  --over: var(--red);
+  --pace: var(--coffee-dark);
+  --person-a: var(--teal);
+  --person-b: #d87b25;
+  --unknown: #b8a98a;
+
+  /* stamps & chips */
+  --stamp-paid: var(--ok);
+  --stamp-due: var(--red);
+  --stamp-part: #d87b25;
+  --chip-bg: #ffe3c4;
+  --chip-ink: var(--red);
+  --alert-bg: #ffe3c4;
+  --alert-border: var(--red);
+  --focus: var(--gold);
+  --row-alt: #fbefc8;
+  --row-hover: #fff0bc;
+
+  /* type */
+  --font-body: "Courier New", "Noto Sans Mono", ui-monospace, monospace;
+  --font-num: ui-monospace, "Cascadia Mono", "Noto Sans Mono", "Courier New", monospace;
+  --font-display: "Arial Black", Impact, "Noto Sans", sans-serif;
+
+  /* shape */
+  --border-w: 3px;
+  --shadow: 4px 4px 0 var(--coffee-dark);
+  --shadow-sm: 2px 2px 0 rgba(29, 15, 10, .35);
+  --radius: 0;
+}

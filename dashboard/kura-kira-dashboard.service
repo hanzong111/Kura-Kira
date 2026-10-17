@@ -1,0 +1,18 @@
+# Kura-Kira dashboard on http://localhost:8790 (systemd user service).
+# Installed by dashboard/install-service.sh, which symlinks this file and adds a drop-in
+# (kura-kira-dashboard.service.d/local.conf) with the checkout path and the real ledger.
+[Unit]
+Description=Kura-Kira dashboard (http://localhost:8790)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/duit
+Environment=DUIT_DB=%h/duit/data/duit.db
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 -m dashboard.server
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

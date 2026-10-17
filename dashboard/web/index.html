@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kura-Kira</title>
+  <link rel="icon" href="assets/coin.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img src="assets/coin.svg" alt="">
+      <div><h1>KURA-KIRA</h1><small>spending for two</small></div>
+    </div>
+    <label><span>Month</span><select id="month" aria-label="Month"></select></label>
+    <div class="day num" id="day">day –/–</div>
+    <div class="live" id="live" data-s="off" title="Live updates"><i></i><span>offline</span></div>
+  </header>
+
+  <main>
+    <section class="card combined" id="combined" aria-label="Combined">
+      <h2><span>Combined</span><span id="combined-sub"></span></h2>
+      <div class="card-body" id="combined-body"></div>
+    </section>
+
+    <div class="people" id="people"></div>
+
+    <section class="card needs" id="needs" aria-label="Needs answer">
+      <h2><span>Needs answer</span><span>answer in Telegram</span></h2>
+      <div class="card-body"><ul id="needs-list"></ul></div>
+    </section>
+
+    <section class="card spends" id="spends" aria-label="Spending">
+      <h2><span>Spending</span><span id="spends-count"></span></h2>
+      <form class="filters" id="filters" onsubmit="return false">
+        <label>Month<select name="month" id="f-month"></select></label>
+        <label>Who<select name="person" id="f-person"><option value="">Everyone</option></select></label>
+        <label>Bucket<select name="bucket" id="f-bucket"><option value="">All buckets</option></select></label>
+        <label>Category<select name="category" id="f-category"><option value="">All categories</option></select></label>
+        <label>Paid by<select name="paid_by" id="f-paid"><option value="">Anyone</option></select></label>
+        <label>Search<input name="q" id="f-q" type="search" placeholder="place or item" autocomplete="off"></label>
+        <div class="actions">
+          <button type="button" class="btn plain" id="f-clear">Clear</button>
+          <a class="btn" id="csv" href="/api/spends.csv" download>CSV</a>
+        </div>
+      </form>
+      <div class="spend-grid">
+        <div class="table-wrap">
+          <div class="summary" id="spends-summary"></div>
+          <table>
+            <thead id="spends-head"></thead>
+            <tbody id="spends-rows"></tbody>
+          </table>
+          <div class="empty" id="spends-empty" hidden>No spending matches these filters.</div>
+        </div>
+        <aside class="top-places" aria-label="Top places">
+          <div class="section-title"><span>Top places</span></div>
+          <ol id="top-places"></ol>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
