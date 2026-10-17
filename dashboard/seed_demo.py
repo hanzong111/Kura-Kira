@@ -5,7 +5,8 @@
     DUIT_DB=data/demo.db python3 -m dashboard.server
 
 The month has: the example rows from docs/design-prompt.md, a split Zapfan lunch, Hanz over budget on
-Toll, an Unsorted Watsons entry, a dinner with no payer, a settle-up, and Hanz's house paid / car due.
+Toll, Vanisa overspending one weekend (so this
+weekend starts with a negative carry-over), an Unsorted Watsons entry, a dinner with no payer, a settle-up, and Hanz's house paid / car due.
 """
 
 from __future__ import annotations
@@ -45,6 +46,7 @@ OCTOBER = [
     ("2026-10-08", "vanisa", "Shell", 60, "petrol", "Transport", {}),
     ("2026-10-09", "hanz", "Grab", 18.40, "daily", "Transport", {}),
     ("2026-10-10", "hanz", "Sushi-Mentai", 56.50, "daily", "Food", {}),
+    ("2026-10-10", "vanisa", "Pavilion", 380, "daily", "Shopping", {"item": "birthday gift"}),
     ("2026-10-10", "vanisa", "Pet Lovers", 38, "chuchu", "Pet", {"item": "cat litter"}),
     ("2026-10-11", "hanz", "Jaya Grocer", {"hanz": 46.60, "vanisa": 46.60}, "grocery", "Groceries",
      {"paid_by": "hanz"}),

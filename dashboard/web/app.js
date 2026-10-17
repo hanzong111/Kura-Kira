@@ -31,14 +31,14 @@ function syncURL() {
 
 // ---- pieces -----------------------------------------------------------------------------------------
 /** A clickable progress bar. `b` has spent/cap(+_fmt), left_fmt, status; `marker` is 0..1 or null. */
-function bar(label, b, { marker = null, cap = "cap", big = false, person = "", bucket = "", sub = null } = {}) {
+function bar(label, b, { marker = null, cap = "cap", big = false, person = "", bucket = "", sub = null, note = "" } = {}) {
   const capVal = b[cap], capFmt = b[`${cap}_fmt`];
   const over = b.spent > capVal;
   const subText = sub ?? (over ? `over by ${unsign(b.left_fmt)}` : `${b.left_fmt} left`);
   return `<button type="button" class="bar s-${esc(b.status)}${big ? " big" : ""}" data-person="${esc(person)}" data-bucket="${esc(bucket)}"
       title="Show ${esc(label)} spends">
     <span class="bar-top"><span class="bar-label">${esc(label)}</span>
-      <span class="bar-nums num">${esc(b.spent_fmt)} / ${esc(capFmt)}</span></span>
+      <span class="bar-nums num">${esc(b.spent_fmt)} / ${esc(capFmt)}</span></span>${note}
     <span class="bar-track"><span class="bar-fill" style="--w:${pct(b.spent, capVal)}%"></span>${
       marker == null ? "" : `<span class="bar-pace" style="--x:${(marker * 100).toFixed(1)}%" title="pace"></span>`}</span>
     <span class="bar-sub">${esc(subText)}</span>
@@ -102,6 +102,16 @@ function renderCombined() {
     </div>`;
 }
 
+/** "target RM100.00 + RM20.00 saved = RM120.00 can spend" (carry from earlier weeks of the month). */
+function carryNote(w) {
+  const target = `target <span class="num">${esc(w.target_fmt)}</span>`;
+  if (!w.carry) return `<span class="carry">${target}</span>`;
+  const neg = w.carry < 0;
+  const carry = `${neg ? "−" : "+"} <span class="num">${esc(unsign(w.carry_fmt))}</span> ${neg ? "overspent" : "saved"}`;
+  return `<span class="carry">${target} <span class="${neg ? "carry-neg" : "carry-pos"}">${carry}</span>
+    = <b class="num">${esc(w.allowance_fmt)}</b> can spend</span>`;
+}
+
 function weekRange(w) {
   const f = (s) => new Date(`${s}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   return `${f(w.start)} – ${f(w.end)}`;
@@ -113,13 +123,15 @@ function renderPerson(key, mirror) {
   const monthly = goalBuckets().filter((b) => b.kind === "monthly");
   const anyWeek = weekly.map((b) => p.buckets[b.key].week).find(Boolean);
   const weekBars = weekly.map((b) => {
-    const x = p.buckets[b.key], w = x.week;
-    if (!w) return "";
+    const w = p.buckets[b.key].week;
+    if (!w) return `<p class="muted week-none">${esc(b.label)}: no ${esc(b.label.toLowerCase())} days counted this week.</p>`;
     const sub = w.spent > w.allowance ? `over by ${unsign(w.left_fmt)} this week` : `${w.left_fmt} left this week`;
-    return bar(b.label, { ...w, status: w.status }, { cap: "allowance", marker: w.days ? w.days_elapsed / w.days : null,
-      person: key, bucket: b.key, sub });
+    return bar(b.label, w, { cap: "allowance", marker: w.days ? w.days_elapsed / w.days : null,
+      person: key, bucket: b.key, sub, note: carryNote(w) });
   }).join("");
-  const monthBars = monthly.map((b) => bar(b.label, p.buckets[b.key], { marker: el, person: key, bucket: b.key })).join("");
+  // weekday/weekend over the month: spent against the sum of this month's week targets
+  const monthBars = [...weekly, ...monthly].map((b) => bar(b.label, p.buckets[b.key],
+    { marker: b.kind === "weekly" ? null : el, person: key, bucket: b.key })).join("");
   const stamps = fixedBuckets().map((b) => {
     const f = p.buckets[b.key];
     return stamp(b.label, f.amount_fmt, f.paid ? "paid" : "due", f.paid ? "PAID" : "DUE");
@@ -133,7 +145,7 @@ function renderPerson(key, mirror) {
     </div>
     <div class="card-body">
       <div class="section-title"><span>This week</span><span>${anyWeek ? esc(weekRange(anyWeek)) : ""}</span></div>
-      ${weekBars ? `<div class="two">${weekBars}</div>` : `<p class="muted">Not the current month.</p>`}
+      ${status.today.startsWith(status.month) ? `<div class="two">${weekBars}</div>` : `<p class="muted">Not the current month.</p>`}
       <div class="section-title"><span>This month</span></div>
       ${bar("Total goals", p.goals, { marker: el, person: key })}
       <div class="two">${monthBars}</div>

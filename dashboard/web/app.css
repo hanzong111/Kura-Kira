@@ -72,6 +72,11 @@ main { display: grid; gap: 16px; max-width: 1440px; margin: 0 auto; padding: 16p
   position: absolute; top: -5px; bottom: -5px; left: var(--x, 0); width: 3px; margin-left: -1px;
   background: var(--pace);
 }
+.carry { display: block; margin-top: 2px; font-size: 11px; color: var(--muted); }
+.carry b { color: var(--card-ink); }
+.carry-pos { color: var(--ok); font-weight: 700; }
+.carry-neg { color: var(--card-ink); background: var(--ahead); padding: 0 3px; font-weight: 700; }
+.week-none { margin: 4px 0; font-size: 12px; }
 .bar-sub { display: block; margin-top: 2px; font-size: 11px; color: var(--muted); }
 .s-ok .bar-fill { background: var(--ok); }
 .s-ahead .bar-fill { background: var(--ahead); }

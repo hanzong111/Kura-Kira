@@ -14,7 +14,7 @@ from dashboard.server import App, serve
 @pytest.fixture
 def base(tmp_path, cfg, clock):
     path = tmp_path / "demo.db"
-    seed(path, clock.now.strftime("%Y-%m-%dT%H:%M"))
+    seed(path, clock.now.strftime("%Y-%m-%dT%H:%M")).conn.close()
     httpd = serve(App(path, clock=clock), port=0)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{httpd.server_port}", path
@@ -46,10 +46,13 @@ def test_status_cards(base):
     toll = hanz["buckets"]["toll"]
     assert (toll["spent"], toll["cap"], toll["status"]) == (5300, 5000, "over")
     assert toll["left_fmt"] == "-RM3.00" and toll["cap_fmt"] == "RM50.00"
-    assert hanz["buckets"]["weekday"]["week"]["allowance_fmt"].startswith("RM")
+    weekday = hanz["buckets"]["weekday"]
+    assert (weekday["cap_fmt"], weekday["target_fmt"]) == ("RM440.00", "RM100.00")
+    week = vanisa["buckets"]["weekend"]["week"]  # she overspent the 10-11 Oct weekend
+    assert (week["target_fmt"], week["carry_fmt"], week["allowance_fmt"]) == ("RM200.00", "-RM81.00", "RM119.00")
     assert (hanz["buckets"]["house"]["status"], hanz["buckets"]["car"]["status"]) == ("paid", "due")
     assert vanisa["buckets"]["car"]["paid"] and vanisa["unsorted_fmt"] == "RM75.00"
-    assert st["combined"]["goals"]["cap_fmt"] == "RM5,020.00"
+    assert st["combined"]["goals"]["cap_fmt"] == "RM5,300.00"  # Oct: 4.4 weekday + 4.5 weekend targets
     assert st["balance"]["owes"] == {"from": "vanisa", "to": "hanz", "amount": 4510, "amount_fmt": "RM45.10"}
     assert st["paid"]["unknown_fmt"] == "RM69.70"
     q = {p["place"]: p for p in st["pending"]}
@@ -68,7 +71,7 @@ def test_status_other_month_and_bad_month(base):
 def test_spends_filters(base):
     url, _ = base
     all_rows = get_json(f"{url}/api/spends?month=2026-10")
-    assert all_rows["count"] == 31 and all_rows["rows"][0]["spent_on"] == "2026-10-17"
+    assert all_rows["count"] == 32 and all_rows["rows"][0]["spent_on"] == "2026-10-17"
     zap = get_json(f"{url}/api/spends?q=zapfan&paid_by=hanz")
     split = next(r for r in zap["rows"] if r["split"])
     assert split["who"] == "Both" and split["split"] == "Hanz RM13.20 · Vanisa RM14.50"
@@ -137,7 +140,7 @@ def test_events_fire_on_write_not_on_reads(base, cfg, clock):
 
 
 def test_extra_hosts_for_a_tunnel(tmp_path, clock):
-    seed(tmp_path / "d.db", clock.now.strftime("%Y-%m-%dT%H:%M"))
+    seed(tmp_path / "d.db", clock.now.strftime("%Y-%m-%dT%H:%M")).conn.close()
     httpd = serve(App(tmp_path / "d.db", clock=clock, hosts=("Kura.ngrok-free.dev", "")), port=0)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     try:

@@ -40,8 +40,8 @@ HOST, PORT = "127.0.0.1", 8790
 LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
 DAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 # keys whose integer values are sen; each gets a "<key>_fmt" sibling in the JSON
-MONEY = {"cap", "spent", "left", "amount", "allowance", "total", "spends", "fixed", "unknown", "unsorted",
-         "outflow_plan", "total_sen", "share"}
+MONEY = {"cap", "spent", "left", "amount", "allowance", "target", "carry", "total", "spends", "fixed", "unknown",
+         "unsorted", "outflow_plan", "total_sen", "share"}
 CSV_COLUMNS = ["Date", "Day", "Who", "Place", "Item", "Bucket", "Category", "Amount", "Split", "Paid by"]
 
 
