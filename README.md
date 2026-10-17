@@ -12,8 +12,8 @@ does all the maths: totals, weekly allowances, pace, balances. The model never a
 | Step | Part | State |
 |---|---|---|
 | 1 | Ledger + tests (`duit/`) | done |
-| 2 | MCP tools for the agent | next |
-| 3 | Parsing test set; check sender ID reaches the agent | |
+| 2 | MCP tools for the agent (`duit/server.py`) | done |
+| 3 | Parsing test set; check sender ID reaches the agent | next |
 | 4 | Hermes `duit` profile + Telegram group | |
 | 5 | Cron: alerts, Sunday recap, month-end report | |
 | 6 | Trial week | |
@@ -30,15 +30,27 @@ duit/periods.py  months, Mon-Sun weeks, weekly allowance
 duit/db.py       SQLite schema
 duit/ledger.py   all writes: log_spend, resolve, edit, undo, settle, pay_fixed, set_plan
 duit/report.py   all reads: bucket status, pace, balance, paid totals, pending questions
+duit/replies.py  chat text (confirmations, questions, alerts, status) built from ledger numbers
+duit/server.py   MCP server (stdio): the only tools the agent gets
 ```
 
 ## Run
 
 ```bash
 cp config.example.toml config.toml   # then fill in Telegram user IDs
-python3 -m pip install pytest
-python3 -m pytest -q
-python3 -m duit status               # month overview in the terminal
+./scripts/test.sh -q                 # creates .venv on first run
+.venv/bin/python -m duit status      # month overview in the terminal
+.venv/bin/python -m duit.server      # MCP server on stdio (Hermes launches this)
+```
+
+Hermes profile config (step 4):
+
+```yaml
+mcp_servers:
+  duit:
+    command: /home/zyzh/duit/.venv/bin/python
+    args: ["-m", "duit.server"]
+    env: {PYTHONPATH: /home/zyzh/duit}
 ```
 
 Data lives in `data/duit.db` (gitignored). Override with `DUIT_DB` / `DUIT_CONFIG`.

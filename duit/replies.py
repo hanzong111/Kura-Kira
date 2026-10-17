@@ -1,0 +1,149 @@
+"""Chat text built from ledger results, so every number the bot posts comes from code."""
+
+from __future__ import annotations
+
+from datetime import date
+
+from .config import Config
+from .money import fmt
+
+DOT = {"ok": "🟩", "ahead": "🟨", "over": "🟥", "paid": "✓", "due": "⏳"}
+
+
+def _name(cfg: Config, person: str | None) -> str:
+    if person is None:
+        return "?"
+    if person == "each":
+        return "each paid own"
+    return cfg.people[person].name
+
+
+def _month_name(iso_day: str) -> str:
+    return date.fromisoformat(iso_day).strftime("%B")
+
+
+def left_phrase(cfg: Config, st: dict, spent_on: str) -> str:
+    """'RM143.50 left this weekend 🟩' / 'over by RM3.00 for October 🟥'."""
+    c = cfg.currency
+    if "week" in st:
+        w = st["week"]
+        span = "this weekend" if st["bucket"] == "weekend" else f"this week ({st['label'].lower()})"
+        left, status = w["left"], w["status"]
+    else:
+        span = f"in {st['label']} for {_month_name(spent_on)}"
+        left, status = st["left"], st["status"]
+    if left < 0:
+        return f"over by {fmt(-left, c)} {span} {DOT['over']}"
+    return f"{fmt(left, c)} left {span} {DOT[status]}"
+
+
+def spend_reply(cfg: Config, e: dict) -> str:
+    """The one-to-three line confirmation after logging, editing or resolving a spend."""
+    c = cfg.currency
+    if e.get("duplicate"):
+        return f"Already logged as #{e['id']}."
+    bucket = cfg.buckets[e["bucket"]].label if e["bucket"] else "❓ Unsorted"
+    head = f"✅ #{e['id']} {e['place']} · {bucket} · {fmt(e['total_sen'], c)}"
+    shares = e["shares"]
+    if len(shares) == 1:
+        (person, _), = shares.items()
+        head += f" · {_name(cfg, person)}"
+        if e["paid_by"] not in (person, None):
+            head += f" · paid by {_name(cfg, e['paid_by'])}"
+    else:
+        head += f" · paid by {_name(cfg, e['paid_by'])}"
+    lines = [head]
+    status = e.get("status") or {}
+    if len(shares) == 1:
+        (person, _), = shares.items()
+        if person in status:
+            lines[0] += f" — {left_phrase(cfg, status[person], e['spent_on'])}"
+    else:
+        for person, amt in shares.items():
+            line = f"   {_name(cfg, person)} {fmt(amt, c)}"
+            if person in status:
+                line += f" → {left_phrase(cfg, status[person], e['spent_on'])}"
+            lines.append(line)
+    for a in e.get("alerts") or []:
+        lines.append(alert_line(cfg, a))
+    return "\n".join(lines)
+
+
+def alert_line(cfg: Config, a: dict) -> str:
+    c = cfg.currency
+    label = cfg.buckets[a["bucket"]].label
+    scope = "this week" if a["scope"] == "week" else "this month"
+    who = _name(cfg, a["person"])
+    if a["threshold"] >= 1:
+        return f"🟥 {who} · {label} over {scope} by {fmt(-a['left'], c)} ({fmt(a['spent'], c)}/{fmt(a['cap'], c)})"
+    return (f"⚠️ {who} · {label} at {a['spent'] * 100 // max(a['cap'], 1)}% {scope} "
+            f"({fmt(a['spent'], c)}/{fmt(a['cap'], c)}), {fmt(a['left'], c)} left")
+
+
+def question(cfg: Config, e: dict) -> dict | None:
+    """What to ask in the group for a pending entry, or None if nothing is missing."""
+    c = cfg.currency
+    who = [cfg.people[p].name for p in e["shares"]]
+    what = f"{e['place']} {fmt(e['total_sen'], c)}"
+    if len(e["shares"]) > 1:
+        what += " (" + " · ".join(f"{cfg.people[p].name} {fmt(a, c)}" for p, a in e["shares"].items()) + ")"
+    if "payer" in e["needs"]:
+        tag = sorted(set(who) | {cfg.people[e["sender"]].name})
+        options = [p.name for p in cfg.people.values()] + ["Each paid own"]
+        return {"entry_id": e["id"], "asks": "payer", "tag": tag,
+                "text": f"{' '.join('@' + t for t in tag)} {what}: who paid?", "options": options}
+    if "bucket" in e["needs"]:
+        opts = e.get("bucket_options") or ["daily", "extra"]
+        labels = ["Everyday (weekday/weekend)" if o == "daily" else cfg.buckets[o].label for o in opts
+                  if o == "daily" or o in cfg.buckets]
+        return {"entry_id": e["id"], "asks": "bucket", "tag": [cfg.people[e["sender"]].name],
+                "text": f"@{cfg.people[e['sender']].name} {what}: which one?", "options": labels + ["Other…"]}
+    return None
+
+
+def fixed_reply(cfg: Config, r: dict) -> str:
+    label = cfg.buckets[r["bucket"]].label
+    month = date.fromisoformat(r["month"] + "-01").strftime("%B")
+    if r["already_paid"]:
+        return f"{label} is already marked paid for {month}."
+    return f"✅ {label} {fmt(r['amount'], cfg.currency)} · {_name(cfg, r['person'])} · Paid for {month}"
+
+
+def balance_line(cfg: Config, bal: dict) -> str:
+    o = bal["owes"]
+    if not o:
+        return "Balance: all settled."
+    return f"Balance: {_name(cfg, o['from'])} owes {_name(cfg, o['to'])} {fmt(o['amount'], cfg.currency)}"
+
+
+def status_text(cfg: Config, st: dict, person: str | None = None) -> str:
+    """Text version of the dashboard for 'how are we doing?' / 'how much left?'."""
+    c = cfg.currency
+    month = date.fromisoformat(st["month"] + "-01").strftime("%B %Y")
+    out = [f"📊 {month} · {round(st['elapsed'] * 100)}% through the month"]
+    g = st["combined"]["goals"]
+    if person is None:
+        out.append(f"Together: {fmt(g['spent'], c)} / {fmt(g['cap'], c)} {DOT[g['status']]}")
+    for p, v in st["people"].items():
+        if person and p != person:
+            continue
+        pg = v["goals"]
+        out.append(f"\n{v['name']}: {fmt(pg['spent'], c)} / {fmt(pg['cap'], c)} {DOT[pg['status']]}")
+        for b in v["buckets"].values():
+            if b["kind"] == "fixed":
+                continue
+            if "week" in b:
+                w = b["week"]
+                out.append(f"  {b['label']}: {fmt(w['left'], c)} left this week "
+                           f"({fmt(w['spent'], c)}/{fmt(w['allowance'], c)}) {DOT[w['status']]}")
+            else:
+                out.append(f"  {b['label']}: {fmt(b['left'], c)} left ({fmt(b['spent'], c)}/{fmt(b['cap'], c)}) "
+                           f"{DOT[b['status']]}")
+        fixed = [b for b in v["buckets"].values() if b["kind"] == "fixed"]
+        out.append("  " + " · ".join(f"{b['label']} {DOT[b['status']]} {b['status'].upper()}" for b in fixed))
+        if v["unsorted"]:
+            out.append(f"  ❓ Unsorted: {fmt(v['unsorted'], c)}")
+    out.append("\n" + balance_line(cfg, st["balance"]))
+    if st["pending"]:
+        out.append(f"❓ {len(st['pending'])} waiting for an answer")
+    return "\n".join(out)

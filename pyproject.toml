@@ -3,10 +3,11 @@ name = "duit"
 version = "0.1.0"
 description = "Couple spending tracker: a Hermes agent in a Telegram group logs spends into a SQLite ledger."
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["mcp==2.0.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-p anyio"

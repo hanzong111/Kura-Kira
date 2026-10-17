@@ -98,7 +98,8 @@ def connect(path: str | os.PathLike | None = None) -> sqlite3.Connection:
     path = default_path() if path is None else path
     if str(path) != ":memory:":
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, isolation_level=None)  # autocommit; we open transactions explicitly
+    # autocommit (transactions are explicit); MCP runs sync tools in worker threads, callers serialise access
+    conn = sqlite3.connect(path, isolation_level=None, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
