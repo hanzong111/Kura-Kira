@@ -372,9 +372,9 @@ config.example.toml    the plan to copy into config.toml
 |---|---|---|
 | 1 | Ledger + tests | done |
 | 2 | Agent tools as a Hermes plugin | done |
-| 3 | Parsing test set + agent rules | running; 2 cases still pass only some of the time |
+| 3 | Parsing test set + agent rules + merchant catalogue | 44/44 on the live model |
 | 4 | Hermes `kura-kira` profile + Telegram group | live |
-| 5 | Scheduled jobs: 80% and over-budget alerts, House/Car reminders, Sunday recap, month-end report | next |
+| 5 | Scheduled messages (written by code): House/Car due 1st+5th, Sunday recap, month report; 80%/over alerts in every reply; nightly check + backup | done |
 | 6 | Trial week | under way |
 | 7 | Dashboard (DUIT Co-op Arcade design) | done |
 
