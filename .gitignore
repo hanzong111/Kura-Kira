@@ -1,0 +1,11 @@
+# local data and secrets — never commit
+data/
+config.toml
+.env
+*.db
+*.db-*
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/

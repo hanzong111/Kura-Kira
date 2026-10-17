@@ -1,0 +1,82 @@
+# Copy to config.toml (gitignored) and fill in the real values.
+# All amounts are RM per person per month unless noted.
+
+timezone = "Asia/Kuala_Lumpur"
+currency = "RM"
+
+# Telegram user IDs map senders to people. Display names can change; IDs can't.
+[people.hanz]
+name = "Hanz"
+telegram_id = 0
+
+[people.vanisa]
+name = "Vanisa"
+telegram_id = 0
+
+# kind:
+#   weekly  - cap is the monthly total; each week gets (left / days left) x days in that week
+#   monthly - plain monthly cap
+#   fixed   - paid upfront, shown as Paid / Due (no status bar)
+# For weekly buckets, `days` says which weekdays count (0 = Monday ... 6 = Sunday).
+
+[buckets.weekday]
+label = "Weekday"
+kind = "weekly"
+amount = 400        # RM100 x 4 weeks
+days = [0, 1, 2, 3, 4]
+
+[buckets.weekend]
+label = "Weekend"
+kind = "weekly"
+amount = 800        # RM200 x 4 weeks
+days = [5, 6]
+
+[buckets.extra]
+label = "Extra"
+kind = "monthly"
+amount = 300
+
+[buckets.grocery]
+label = "Grocery"
+kind = "monthly"
+amount = 200
+
+[buckets.chuchu]
+label = "Chu Chu / Toiletries"
+kind = "monthly"
+amount = 60
+
+[buckets.petrol]
+label = "Petrol"
+kind = "monthly"
+amount = 200
+
+[buckets.toll]
+label = "Toll"
+kind = "monthly"
+amount = 50
+
+[buckets.parents]
+label = "Parents"
+kind = "monthly"
+amount = 500
+
+[buckets.house]
+label = "House"
+kind = "fixed"
+amount = 1000
+auto_paid = ["vanisa"]   # marked Paid automatically each month; others start Due
+
+[buckets.car]
+label = "Car"
+kind = "fixed"
+amount = 300
+auto_paid = ["vanisa"]
+
+[rules]
+alert_at = [0.8, 1.0]          # warn when a person's bucket crosses these fractions
+ask_extra_over = 100           # a daily spend share above this -> ask "weekday/weekend or Extra?"
+
+# Descriptive labels for the spending table (not budgets).
+categories = ["Food", "Groceries", "Leisure", "Sport", "Transport", "Housing",
+              "Bills", "Shopping", "Health", "Toiletries", "Pet", "Family", "Travel", "Other"]
