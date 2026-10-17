@@ -43,25 +43,24 @@ class Week:
     a: date          # first counted day: clipped to the month and the tracking start
     b: date          # last counted day: clipped to the month
     days: int        # bucket days counted in this week
-    target: int      # sen: the weekly target, shared by days for partial weeks
+    target: int      # sen: daily budget x counted days
 
 
-def month_weeks(month: str, weekdays: tuple[int, ...], target_sen: int, start: date | None = None) -> list[Week]:
-    """The month's Mon-Sun weeks for a weekly bucket, each with its target.
+def month_weeks(month: str, weekdays: tuple[int, ...], per_day_sen: int, start: date | None = None) -> list[Week]:
+    """The month's Mon-Sun weeks for a weekly bucket, each with its target = daily budget x counted days.
 
-    A full week gets the whole target (RM100 Mon-Fri, RM200 Sat-Sun). Weeks cut by the month edge or by
-    the tracking start get target x counted days / days in a full week (Thu-Fri = 2/5 of RM100 = RM40).
+    RM20/weekday -> a full week RM100, Thu-Fri RM40; RM100/weekend day -> RM200, a lone Saturday RM100.
+    Days outside the month (or before `start`) aren't counted.
     """
     first, last = month_bounds(month)
     begin = max(first, start) if start else first
-    per_week = len(weekdays)
     out = []
     monday = week_bounds(first)[0]
     while monday <= last:
         sunday = monday + timedelta(days=6)
         a, b = max(monday, begin), min(sunday, last)
         days = count_days(a, b, weekdays) if a <= b else 0
-        out.append(Week(monday, sunday, a, b, days, target_sen * days // per_week if per_week else 0))
+        out.append(Week(monday, sunday, a, b, days, per_day_sen * days))
         monday += timedelta(days=7)
     return out
 

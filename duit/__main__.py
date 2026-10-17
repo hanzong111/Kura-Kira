@@ -3,6 +3,7 @@
     python -m duit json [YYYY-MM]     raw status JSON
     python -m duit check              invariant checks (exit 1 on problems)
     python -m duit backup             online backup to data/backups (keeps 30)
+    python -m duit backfill FROM TO   on-budget placeholder spends for days before tracking
 """
 
 import json
@@ -50,6 +51,13 @@ def main(argv: list[str]) -> int:
         from .config import ROOT
         from .integrity import backup
         print(backup(led.conn, ROOT / "data" / "backups"))
+    elif cmd == "backfill":
+        from datetime import date
+
+        from .backfill import backfill
+        for r in backfill(led, date.fromisoformat(argv[1]), date.fromisoformat(argv[2])):
+            print(f"{'(exists) ' if r['duplicate'] else ''}#{r['id']} {cfg.people[r['person']].name} {r['bucket']} "
+                  f"{r['from']}..{r['to']} {fmt(r['amount'], cfg.currency)}")
     elif cmd == "json":
         print(json.dumps(led.status(argv[1] if len(argv) > 1 else None), indent=2))
     else:

@@ -31,6 +31,7 @@ from typing import Callable
 from urllib.parse import parse_qs, urlparse
 
 from duit import config, db
+from duit.backfill import PLACE as BACKFILL_PLACE
 from duit.ledger import EACH, Ledger, LedgerError, norm_place
 from duit.money import fmt
 from duit.periods import month_bounds, month_key
@@ -169,6 +170,8 @@ class App:
             amount_of = (lambda r: r["share"]) if pkey else (lambda r: r["total_sen"])
             places: dict[str, dict] = {}
             for r in out:
+                if r["place"] == BACKFILL_PLACE:
+                    continue  # placeholders for days before tracking aren't a real place
                 p = places.setdefault(norm_place(r["place"]) or r["place"],
                                       {"place": r["place"], "bucket": r["bucket"], "count": 0, "total": 0})
                 p["count"] += 1

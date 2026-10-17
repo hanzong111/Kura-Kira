@@ -36,21 +36,21 @@ def test_splits_add_up_exactly():
 
 def test_october_2026_weekly_targets():
     # Oct 2026: Thu 1st .. Sat 31st
-    wd = month_weeks("2026-10", WEEKDAYS, 10000)
+    wd = month_weeks("2026-10", WEEKDAYS, 2000)
     assert [(w.days, w.target) for w in wd] == [(2, 4000), (5, 10000), (5, 10000), (5, 10000), (5, 10000)]
-    we = month_weeks("2026-10", WEEKEND, 20000)
+    we = month_weeks("2026-10", WEEKEND, 10000)
     assert [(w.days, w.target) for w in we] == [(2, 20000), (2, 20000), (2, 20000), (2, 20000), (1, 10000)]
     assert sum(w.target for w in wd) == 44000 and sum(w.target for w in we) == 90000
 
 
 def test_tracking_start_drops_earlier_days():
-    wd = month_weeks("2026-10", WEEKDAYS, 10000, date(2026, 10, 18))  # starts on a Sunday
+    wd = month_weeks("2026-10", WEEKDAYS, 2000, date(2026, 10, 18))  # starts on a Sunday
     assert [w.target for w in wd] == [0, 0, 0, 10000, 10000]
-    we = month_weeks("2026-10", WEEKEND, 20000, date(2026, 10, 18))
+    we = month_weeks("2026-10", WEEKEND, 10000, date(2026, 10, 18))
     assert [w.target for w in we] == [0, 0, 10000, 20000, 10000]   # Sun 18 = half a weekend
 
 
 def test_week_of():
-    we = month_weeks("2026-10", WEEKEND, 20000)
+    we = month_weeks("2026-10", WEEKEND, 10000)
     assert week_of(we, date(2026, 10, 17)) == 2
     assert week_of(we, date(2026, 11, 1)) == 4   # Sunday after the month: same Mon-Sun week

@@ -27,7 +27,7 @@ def week_phrase(cfg: Config, st: dict) -> str:
     c = cfg.currency
     w = st["week"]
     span = "This weekend" if st["bucket"] == "weekend" else f"This week ({st['label'].lower()}s)"
-    budget = f"target {fmt(w['target'], c)}"
+    budget = f"target {fmt(w['target'], c)} ({w['days']} × {fmt(w['per_day'], c)})"
     if w["carry"] > 0:
         budget += f" + {fmt(w['carry'], c)} saved = {fmt(w['allowance'], c)}"
     elif w["carry"] < 0:

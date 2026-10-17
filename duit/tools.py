@@ -121,8 +121,8 @@ def specs(cfg: Config) -> list[dict]:
              "person": {**_PERSON, "description": "Only if paying for someone else. Default the sender."},
              "month": _MONTH}}},
         {"name": "duit_set_plan",
-         "description": "Change a budget ('plan: grocery 250', 'vanisa petrol 150', 'weekend 250'). Weekday/weekend "
-                        "amounts are per week; the others per month. Copied into later months.",
+         "description": "Change a budget ('plan: grocery 250', 'vanisa petrol 150', 'weekday 25 a day'). Weekday/weekend "
+                        "amounts are per day; the others per month. Copied into later months.",
          "parameters": {"type": "object", "required": ["bucket", "amount"], "properties": {
              "bucket": _s(f"Bucket key: {', '.join(cfg.buckets)}"), "amount": _AMOUNT,
              "person": {**_PERSON, "description": "Omit = both"}, "month": _MONTH}}},
@@ -431,7 +431,7 @@ class Tools:
         r = self.led.set_plan(a.get("bucket", ""), _rm(sen), self._person(a.get("person"), ctx), a.get("month"))
         names = " & ".join(self.cfg.people[p].name for p in r["people"])
         b = self.cfg.buckets[r["bucket"]]
-        per = " per week" if b.kind == "weekly" else ""
+        per = " per day" if b.kind == "weekly" else ""
         return {"reply": f"📝 {b.label} = {fmt(r['amount'], self.cfg.currency)}{per} for {names} from {r['month']}"}
 
     def status(self, a: dict, ctx: Context) -> dict:

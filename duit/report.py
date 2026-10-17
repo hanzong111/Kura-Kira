@@ -69,7 +69,7 @@ def bucket_status(conn: sqlite3.Connection, cfg: Config, month: str, person: str
             "status": pace_status(used, cap, month_elapsed(month, today))}
 
 
-def _weekly_status(conn: sqlite3.Connection, cfg: Config, month: str, person: str, b, target: int,
+def _weekly_status(conn: sqlite3.Connection, cfg: Config, month: str, person: str, b, per_day: int,
                    today: date) -> dict:
     """Weekday/weekend: each week has a fixed target; what's under/over in earlier weeks of the month
     carries into this week ("can spend" = target + carry-over, never below 0). Resets every month.
@@ -81,7 +81,7 @@ def _weekly_status(conn: sqlite3.Connection, cfg: Config, month: str, person: st
     first, last = month_bounds(month)
     start = cfg.tracking_start if cfg.tracking_start and cfg.tracking_start > first else None
     maxed = start is not None and cfg.before_start == "maxed"
-    weeks = month_weeks(month, b.days, target, None if maxed else start)
+    weeks = month_weeks(month, b.days, per_day, None if maxed else start)
     begin = max(first, start) if start else first
 
     def actual(a: date, z: date) -> int:
@@ -92,7 +92,7 @@ def _weekly_status(conn: sqlite3.Connection, cfg: Config, month: str, person: st
         if not maxed or not w.days:
             return 0
         pre = count_days(w.a, min(w.b, start - timedelta(days=1)), b.days) if w.a < start else 0
-        return w.target * pre // w.days
+        return per_day * pre
 
     counted = [w for w in weeks if w.days]
     cap = sum(w.target for w in counted)
@@ -103,7 +103,8 @@ def _weekly_status(conn: sqlite3.Connection, cfg: Config, month: str, person: st
     total_days = sum(w.days for w in counted)
     done_days = count_days(m0, min(today, last), b.days) if today >= m0 else 0
     elapsed = (done_days / total_days if total_days else 1.0) if today <= last else 1.0
-    out = {"bucket": b.key, "label": b.label, "kind": b.kind, "target": target, "cap": cap, "spent": used,
+    out = {"bucket": b.key, "label": b.label, "kind": b.kind, "per_day": per_day, "target": per_day * len(b.days),
+           "cap": cap, "spent": used,
            "assumed": pre_total, "left": cap - used,
            "pct": round(used / cap, 4) if cap else (0.0 if used == 0 else None),
            "status": pace_status(used, cap, elapsed)}
@@ -115,7 +116,7 @@ def _weekly_status(conn: sqlite3.Connection, cfg: Config, month: str, person: st
         can_spend = max(w.target + carry, 0)
         this_week = assumed(w) + actual(w.a, w.b)
         days_elapsed = count_days(w.a, min(today, w.b), b.days)
-        out["week"] = {"start": w.start.isoformat(), "end": w.end.isoformat(),
+        out["week"] = {"start": w.start.isoformat(), "end": w.end.isoformat(), "per_day": per_day,
                        "in_month_start": w.a.isoformat(), "in_month_end": w.b.isoformat(),
                        "target": w.target, "carry": carry, "allowance": can_spend,
                        "spent": this_week, "assumed": assumed(w), "left": can_spend - this_week,

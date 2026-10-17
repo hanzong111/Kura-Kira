@@ -14,8 +14,8 @@ name = "Vanisa"
 telegram_id = 0
 
 # kind:
-#   weekly  - amount is per full week. Weeks cut by the month edge get a share by days
-#             (Thu-Fri = 2/5). Under/overspend in earlier weeks carries into the next week; resets monthly.
+#   weekly  - amount is per DAY (of the bucket's days). A week's target = amount x its days in the month
+#             (RM20 x Mon-Fri = RM100; Thu-Fri = RM40). Under/overspend carries into the next week; resets monthly.
 #   monthly - plain monthly cap
 #   fixed   - paid upfront, shown as Paid / Due (no status bar)
 # For weekly buckets, `days` says which weekdays count (0 = Monday ... 6 = Sunday).
@@ -23,13 +23,13 @@ telegram_id = 0
 [buckets.weekday]
 label = "Weekday"
 kind = "weekly"
-amount = 100        # per week (Mon-Fri)
+amount = 20         # per weekday (RM100 for a full Mon-Fri)
 days = [0, 1, 2, 3, 4]
 
 [buckets.weekend]
 label = "Weekend"
 kind = "weekly"
-amount = 200        # per weekend (Sat-Sun)
+amount = 100        # per weekend day (RM200 for a full Sat-Sun)
 days = [5, 6]
 
 [buckets.extra]

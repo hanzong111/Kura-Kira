@@ -4,8 +4,8 @@
 
 | Bucket | Amount | Kind |
 |---|---|---|
-| Weekday (Mon-Fri) | RM100 per week | weekly target + carry-over |
-| Weekend (Sat-Sun) | RM200 per weekend | weekly target + carry-over |
+| Weekday (Mon-Fri) | RM20 per day (RM100 a full week) | weekly target + carry-over |
+| Weekend (Sat-Sun) | RM100 per day (RM200 a full weekend) | weekly target + carry-over |
 | Extra | RM300 | monthly cap |
 | Grocery | RM200 | monthly cap |
 | Chu Chu / Toiletries | RM60 | monthly cap |
@@ -27,11 +27,12 @@ plus fixed RM1,300 per person.
   everyday spending -> Weekday or Weekend by the date (Malaysia time). Weekend = Sat-Sun only.
 - **Unsure about category/bucket** -> the entry is saved as Unsorted and the bot asks; the answer is learned per place.
 - **Extra** only when the message says "extra" or the bot asks (an everyday spend share over RM100).
-- **Weekly budgets:** each Mon-Fri has a RM100 target, each Sat-Sun RM200. Weeks cut by the month edge (or by
-  `tracking_start`) get a share by days (Thu-Fri = RM40, a lone Saturday = RM100). Under/overspend in the earlier
+- **Weekly budgets:** daily amounts (RM20 per weekday, RM100 per weekend day); a week's target = daily amount x
+  its days in the month (full week RM100 / RM200, Thu-Fri = RM40, a lone Saturday = RM100). Under/overspend in the earlier
   weeks of the month carries into this week: **can spend = target + carry-over**, never below 0. Resets each month.
   The bot and dashboard always show all three: target, carry-over (saved / overspent), can spend.
-- **Starting mid-month:** `rules.tracking_start` + `before_start = "maxed"` count the earlier weekday/weekend days as
+- **Starting mid-month:** `python -m duit backfill FROM TO` adds on-budget "Before tracking" placeholder spends
+  (used for 1-16 Oct 2026). Alternatively `rules.tracking_start` + `before_start = "maxed"` count the earlier weekday/weekend days as
   exactly on budget (full monthly targets, pre-start share assumed spent, no carry-over). `"ignore"` prorates instead.
 - **Pace:** spent / cap compared with how far through the month (or week) we are: ok / ahead / over.
 - **Alerts:** at 80% and when a cap is exceeded (week scope for weekday/weekend, month scope otherwise).

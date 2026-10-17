@@ -29,7 +29,7 @@ def test_log_spend_reply(tools):
     r = tools.call("duit_log_spend", {"place": "Sushi-Mentai", "amount": "RM56.50", "bucket": "daily",
                                       "category": "food"}, HANZ)
     assert r["reply"] == ("✅ #1 Sushi-Mentai · Weekend · RM56.50 · Hanz\n"
-                          "   This weekend: target RM200.00 + RM400.00 saved = RM600.00 · spent RM56.50 · "
+                          "   This weekend: target RM200.00 (2 × RM100.00) + RM400.00 saved = RM600.00 · spent RM56.50 · "
                           "RM543.50 left 🟩")
     assert r["question"] is None
 

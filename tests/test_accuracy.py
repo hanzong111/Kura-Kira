@@ -89,8 +89,8 @@ def test_settle_and_plan_amounts_checked(tools):
                                       msg("vanisa paid hanz 14.50"))["error"]
     assert "can't find" in tools.call("duit_set_plan", {"bucket": "grocery", "amount": 300},
                                       msg("plan: grocery 250"))["error"]
-    assert tools.call("duit_set_plan", {"bucket": "weekend", "amount": "250"},
-                      msg("plan weekend 250"))["reply"] == "📝 Weekend = RM250.00 per week for Hanz & Vanisa from 2026-10"
+    assert tools.call("duit_set_plan", {"bucket": "weekday", "amount": "25"},
+                      msg("weekday 25 a day"))["reply"] == "📝 Weekday = RM25.00 per day for Hanz & Vanisa from 2026-10"
 
 
 def test_no_text_means_no_check(tools):

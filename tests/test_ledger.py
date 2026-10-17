@@ -330,3 +330,18 @@ def test_before_start_maxed_mid_week(cfg, clock):
     led.log_spend(sender="hanz", place="Lunch", total=15, bucket="daily")
     wk = led.status()["people"]["hanz"]["buckets"]["weekday"]["week"]
     assert (wk["assumed"], wk["spent"], wk["allowance"], wk["left"]) == (4000, 5500, 10000, 4500)
+
+
+def test_backfill_before_tracking(ledger):
+    from datetime import date
+
+    from duit.backfill import backfill
+    rows = backfill(ledger, date(2026, 10, 1), date(2026, 10, 16))
+    # per person: weekday Oct 1-2 (40), 5-9 (100), 12-16 (100); weekend Oct 3-4 (200), 10-11 (200)
+    hanz = sorted((r["bucket"], r["from"], r["amount"]) for r in rows if r["person"] == "hanz")
+    assert hanz == [("weekday", "2026-10-01", 4000), ("weekday", "2026-10-05", 10000), ("weekday", "2026-10-12", 10000),
+                    ("weekend", "2026-10-03", 20000), ("weekend", "2026-10-10", 20000)]
+    b = ledger.status()["people"]["hanz"]["buckets"]
+    assert (b["weekday"]["spent"], b["weekend"]["spent"]) == (24000, 40000)
+    assert b["weekend"]["week"]["carry"] == 0           # on budget -> nothing saved, nothing owed
+    assert all(r["duplicate"] for r in backfill(ledger, date(2026, 10, 1), date(2026, 10, 16)))  # re-run safe
