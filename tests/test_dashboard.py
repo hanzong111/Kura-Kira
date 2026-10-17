@@ -98,7 +98,7 @@ def test_person_filter_shows_their_share(base):
 def test_top_places(base):
     url, _ = base
     top = get_json(f"{url}/api/spends")["top_places"]
-    assert top[0] == {"place": "Parents", "count": 2, "total": 100000, "total_fmt": "RM1,000.00"}
+    assert top[0] == {"place": "Parents", "bucket": "parents", "count": 2, "total": 100000, "total_fmt": "RM1,000.00"}
     sushi = next(p for p in top if p["place"] == "Sushi-Mentai")
     assert (sushi["count"], sushi["total"]) == (3, 21700)
 
@@ -113,11 +113,25 @@ def test_csv_export(base):
     assert rows[-1][0] == "2026-10-15" and rows[-1][7] == "27.70" and rows[-1][-1] == "14.50"
 
 
+def test_csv_cells_cannot_be_formulas(base, cfg, clock):
+    from duit import db
+    from duit.ledger import Ledger
+
+    url, path = base
+    conn = db.connect(path)
+    Ledger(conn, cfg, clock).log_spend(sender="hanz", place="=HYPERLINK(\"x\")", total=5, bucket="daily")
+    conn.close()
+    rows = list(csv.reader(io.StringIO(get(f"{url}/api/spends.csv?q=HYPERLINK")[2])))
+    assert rows[1][3] == "'=HYPERLINK(\"x\")"
+
+
 def test_static_and_guards(base):
     url, _ = base
     status, headers, body = get(f"{url}/")
-    assert status == 200 and "KURA-KIRA" in body
-    assert get(f"{url}/theme.css")[1]["Content-Type"].startswith("text/css")
+    assert status == 200 and "duit/css/duit.css" in body
+    with urllib.request.urlopen(f"{url}/duit/assets/sprites/hanz/hanz-sheet.png", timeout=5) as r:
+        assert r.headers["Content-Type"] == "image/png" and r.read(4) == b"\x89PNG"
+    assert get(f"{url}/duit/css/duit.css")[1]["Content-Type"].startswith("text/css")
     assert error(f"{url}/../duit/ledger.py")[0] == 404
     assert error(f"{url}/api/status", {"Host": "evil.example"})[0] == 403
 

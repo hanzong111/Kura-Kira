@@ -4,63 +4,74 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kura-Kira</title>
-  <link rel="icon" href="assets/coin.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="theme.css">
+  <link rel="icon" href="duit/assets/brand/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="duit/assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="stylesheet" href="duit/css/duit.css">
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <header class="top">
-    <div class="brand">
-      <img src="assets/coin.svg" alt="">
-      <div><h1>KURA-KIRA</h1><small>spending for two</small></div>
-    </div>
-    <label><span>Month</span><select id="month" aria-label="Month"></select></label>
-    <div class="day num" id="day">day –/–</div>
-    <div class="live" id="live" data-s="off" title="Live updates"><i></i><span>offline</span></div>
-  </header>
+  <main id="app" class="du-app">
+    <header class="du-header">
+      <div class="du-brand">
+        <h1><img class="du-logo" src="duit/assets/brand/duit-cream.svg" alt="DUIT" width="184" height="56"></h1>
+        <div class="du-party" id="party" aria-hidden="true"></div>
+      </div>
+      <div class="du-month">
+        <button type="button" class="du-button du-button--coral du-button--icon" id="month-prev" aria-label="Previous month">
+          <img class="du-icon" src="duit/assets/icons/arrow-left.svg" alt=""></button>
+        <label><span class="du-sr-only">Budget month</span><select id="month" aria-label="Budget month"></select></label>
+        <button type="button" class="du-button du-button--coral du-button--icon" id="month-next" aria-label="Next month">
+          <img class="du-icon" src="duit/assets/icons/arrow-right.svg" alt=""></button>
+      </div>
+      <p class="du-day" id="day">day –/–</p>
+      <p class="kk-live" id="live" data-s="off" role="status"><i aria-hidden="true"></i><span>connecting</span></p>
+      <img class="du-skyline" src="duit/assets/scene/skyline.png" alt="" aria-hidden="true" width="384" height="64">
+    </header>
 
-  <main>
-    <section class="card combined" id="combined" aria-label="Combined">
-      <h2><span>Combined</span><span id="combined-sub"></span></h2>
-      <div class="card-body" id="combined-body"></div>
+    <p class="kk-stale" id="stale" role="alert" hidden></p>
+
+    <section class="du-panel du-combined" id="combined" aria-labelledby="combined-title">
+      <p class="kk-loading">Loading the ledger…</p>
     </section>
 
-    <div class="people" id="people"></div>
+    <div class="du-partners" id="partners"></div>
 
-    <section class="card needs" id="needs" aria-label="Needs answer">
-      <h2><span>Needs answer</span><span>answer in Telegram</span></h2>
-      <div class="card-body"><ul id="needs-list"></ul></div>
-    </section>
+    <section class="du-panel du-question" id="needs" aria-labelledby="needs-title" hidden></section>
 
-    <section class="card spends" id="spends" aria-label="Spending">
-      <h2><span>Spending</span><span id="spends-count"></span></h2>
-      <form class="filters" id="filters" onsubmit="return false">
-        <label>Month<select name="month" id="f-month"></select></label>
-        <label>Who<select name="person" id="f-person"><option value="">Everyone</option></select></label>
-        <label>Bucket<select name="bucket" id="f-bucket"><option value="">All buckets</option></select></label>
-        <label>Category<select name="category" id="f-category"><option value="">All categories</option></select></label>
-        <label>Paid by<select name="paid_by" id="f-paid"><option value="">Anyone</option></select></label>
-        <label>Search<input name="q" id="f-q" type="search" placeholder="place or item" autocomplete="off"></label>
-        <div class="actions">
-          <button type="button" class="btn plain" id="f-clear">Clear</button>
-          <a class="btn" id="csv" href="/api/spends.csv" download>CSV</a>
-        </div>
-      </form>
-      <div class="spend-grid">
-        <div class="table-wrap">
-          <div class="summary" id="spends-summary"></div>
-          <table>
+    <div class="du-log-layout">
+      <section class="du-panel du-log" id="spends" aria-labelledby="log-title">
+        <header class="du-log-header">
+          <h2 id="log-title"><img class="du-icon" src="duit/assets/icons/receipt.svg" alt="" aria-hidden="true">SPENDING LOG</h2>
+          <form class="du-filters" id="filters" onsubmit="return false">
+            <label class="du-filter"><span class="du-sr-only">Month</span><select name="month" id="f-month" aria-label="Month"></select></label>
+            <label class="du-filter"><span class="du-sr-only">Who</span><select name="person" id="f-person" aria-label="Who"></select></label>
+            <label class="du-filter"><span class="du-sr-only">Bucket</span><select name="bucket" id="f-bucket" aria-label="Bucket"></select></label>
+            <label class="du-filter"><span class="du-sr-only">Category</span><select name="category" id="f-category" aria-label="Category"></select></label>
+            <label class="du-filter"><span class="du-sr-only">Paid by</span><select name="paid_by" id="f-paid" aria-label="Paid by"></select></label>
+            <label class="du-filter du-filter--search"><img src="duit/assets/icons/search.svg" alt="" aria-hidden="true">
+              <span class="du-sr-only">Search place or item</span><input name="q" id="f-q" type="search" placeholder="Search" autocomplete="off"></label>
+          </form>
+          <button type="button" class="du-button kk-clear" id="f-clear">Clear</button>
+          <a class="du-button du-button--coral du-export" id="csv" href="/api/spends.csv" download>
+            <img class="du-icon" src="duit/assets/icons/download.svg" alt="" aria-hidden="true">Export CSV</a>
+        </header>
+        <p class="kk-summary" id="spends-summary" aria-live="polite"></p>
+        <div class="du-table-wrap">
+          <table class="du-table">
             <thead id="spends-head"></thead>
             <tbody id="spends-rows"></tbody>
           </table>
-          <div class="empty" id="spends-empty" hidden>No spending matches these filters.</div>
         </div>
-        <aside class="top-places" aria-label="Top places">
-          <div class="section-title"><span>Top places</span></div>
-          <ol id="top-places"></ol>
-        </aside>
-      </div>
-    </section>
+        <div class="du-mobile-log" id="spends-cards"></div>
+        <div class="du-empty" id="spends-empty" hidden>
+          <img src="duit/assets/icons/empty-wallet@2x.png" alt="" aria-hidden="true" width="48" height="48"><p>No spending matches these filters.</p>
+        </div>
+      </section>
+      <aside class="du-panel du-topplaces" aria-labelledby="places-title">
+        <header class="du-panel-title"><h2 id="places-title"><img class="du-icon" src="duit/assets/icons/chart.svg" alt="" aria-hidden="true"> Top places</h2></header>
+        <div id="top-places"></div>
+      </aside>
+    </div>
   </main>
 
   <script src="app.js"></script>

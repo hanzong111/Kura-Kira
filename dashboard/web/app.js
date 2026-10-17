@@ -1,15 +1,30 @@
-// Kura-Kira dashboard. Read-only: renders /api/status and /api/spends, refreshes on /api/events.
-// Every number and money string comes from the server (duit.ledger + duit.money.fmt); this file only lays them out.
+// Kura-Kira dashboard in the DUIT Co-op Arcade look (duit/css/duit.css, docs/design/duit-arcade/).
+// Read-only: renders /api/status and /api/spends, refreshes on /api/events. Every number and money string
+// comes from the server (duit.ledger + duit.money.fmt); this file only lays them out.
 "use strict";
 
 const $ = (id) => document.getElementById(id);
+const ASSETS = "duit/assets";
 const FILTERS = ["person", "bucket", "category", "paid_by", "q"];
 const state = { month: "", person: "", bucket: "", category: "", paid_by: "", q: "" };
 let status = null;
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-const pct = (n, d) => (d > 0 ? Math.max(0, Math.min(1, n / d)) : n > 0 ? 1 : 0) * 100;
 const unsign = (s) => String(s).replace(/^-/, "");
+const ratio = (n, d) => (d > 0 ? n / d : n > 0 ? Infinity : 0);
+const pct = (n, d) => { const r = ratio(n, d); return Number.isFinite(r) ? Math.round(r * 100) : null; };
+const fill = (n, d) => Math.max(0, Math.min(1, Number.isFinite(ratio(n, d)) ? ratio(n, d) : 1)) * 100;
+
+// API status names -> design states
+const STATES = { ok: "on-track", ahead: "ahead", over: "over" };
+const STATE_LABEL = { "on-track": "On track", ahead: "Ahead of pace", over: "Over budget" };
+const BUCKET_ICON = { weekday: "weekday", weekend: "weekend", extra: "extra", grocery: "grocery", chuchu: "paw",
+                      petrol: "petrol", toll: "toll", parents: "parents", house: "house", car: "car" };
+const SPRITES = ["hanz", "vanisa", "chuchu"];
+
+const icon = (name, cls = "du-icon") => `<img class="${cls}" src="${ASSETS}/icons/${name}.svg" alt="" aria-hidden="true">`;
+const sprite = (who, anim = "idle") => SPRITES.includes(who)
+  ? `<span class="du-sprite" data-character="${who}" data-animation="${anim}" aria-hidden="true"></span>` : "";
 
 async function getJSON(url) {
   const r = await fetch(url, { cache: "no-store" });
@@ -24,161 +39,175 @@ function query(extra = {}) {
   return p.toString();
 }
 
-function syncURL() {
-  const q = query();
-  history.replaceState(null, "", q ? `?${q}` : location.pathname);
-}
+const name = (key) => status.people[key]?.name ?? key;
+const goalBuckets = () => status.bucket_order.filter((b) => b.kind !== "fixed");
+const fixedBuckets = () => status.bucket_order.filter((b) => b.kind === "fixed");
+const monthLabel = (m) => new Date(`${m}-01T00:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+const shortDate = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
 // ---- pieces -----------------------------------------------------------------------------------------
-/** A clickable progress bar. `b` has spent/cap(+_fmt), left_fmt, status; `marker` is 0..1 or null. */
-function bar(label, b, { marker = null, cap = "cap", big = false, person = "", bucket = "", sub = null, note = "" } = {}) {
-  const capVal = b[cap], capFmt = b[`${cap}_fmt`];
-  const over = b.spent > capVal;
-  const subText = sub ?? (over ? `over by ${unsign(b.left_fmt)}` : `${b.left_fmt} left`);
-  return `<button type="button" class="bar s-${esc(b.status)}${big ? " big" : ""}" data-person="${esc(person)}" data-bucket="${esc(bucket)}"
+/** Progress meter: visual fill clamped to 0-100%, the real amounts in aria-valuetext. */
+function meter(b, { cap = "cap", label, hero = false, pace = null, paceLabel = "" }) {
+  const s = STATES[b.status] || "on-track";
+  const capVal = b[cap];
+  const p = pct(b.spent, capVal);
+  const text = `${b.spent_fmt} of ${b[`${cap}_fmt`]} spent${p == null ? "" : `, ${p}%`}; ${STATE_LABEL[s]}` +
+    (s === "over" ? `; ${unsign(b.left_fmt)} over` : "");
+  const marker = pace == null ? "" : `<span class="du-marker" style="--pace:${(pace * 100).toFixed(2)}%" aria-hidden="true">${
+    paceLabel ? `<span>${esc(paceLabel)}</span>` : ""}</span>`;
+  return `<span class="du-meter du-status--${s}${hero ? " du-meter--hero" : ""}${s === "over" ? " du-meter--over" : ""}"
+    style="--value:${fill(b.spent, capVal).toFixed(2)}%" role="progressbar" aria-label="${esc(label)}"
+    aria-valuemin="0" aria-valuemax="${capVal}" aria-valuenow="${Math.max(0, Math.min(b.spent, capVal))}"
+    aria-valuetext="${esc(text)}"><span class="du-meter-fill"></span>${marker}</span>`;
+}
+
+/** A bucket bar that filters the spending log when clicked. */
+function budget(label, b, { cap = "cap", person = "", bucket = "", pace = null, note = "", foot = true, iconName = "" } = {}) {
+  const over = b.spent > b[cap];
+  const p = pct(b.spent, b[cap]);
+  const footer = over
+    ? `<span class="du-budget-foot"><span class="du-tag du-tag--over">OVER</span><span>${esc(unsign(b.left_fmt))} over</span></span>`
+    : foot ? `<span class="du-budget-foot"><span>${p == null ? "No budget set" : `${p}%`}</span><span>${esc(b.left_fmt)} left</span></span>` : "";
+  return `<button type="button" class="du-budget kk-hit" data-person="${esc(person)}" data-bucket="${esc(bucket)}"
       title="Show ${esc(label)} spends">
-    <span class="bar-top"><span class="bar-label">${esc(label)}</span>
-      <span class="bar-nums num">${esc(b.spent_fmt)} / ${esc(capFmt)}</span></span>${note}
-    <span class="bar-track"><span class="bar-fill" style="--w:${pct(b.spent, capVal)}%"></span>${
-      marker == null ? "" : `<span class="bar-pace" style="--x:${(marker * 100).toFixed(1)}%" title="pace"></span>`}</span>
-    <span class="bar-sub">${esc(subText)}</span>
+    <span class="du-budget-label"><strong>${iconName ? icon(iconName, "du-icon kk-bucket-icon") : ""}${esc(label)}</strong>
+      <span class="du-budget-value">${esc(b.spent_fmt)} / ${esc(b[`${cap}_fmt`])}</span></span>
+    ${note}${meter(b, { cap, label, pace })}${footer}
   </button>`;
 }
 
-function stamp(label, amountFmt, kind, text) {
-  return `<span class="stamp ${kind}"><span>${esc(label)} ${esc(amountFmt)}</span><b>${esc(text)}</b></span>`;
+/** "target RM100.00 + RM20.00 saved = RM120.00 can spend" (carry-over from earlier weeks of the month). */
+function carryNote(w) {
+  const target = `target <span class="du-number">${esc(w.target_fmt)}</span>`;
+  if (!w.carry) return `<span class="kk-carry">${target}</span>`;
+  const neg = w.carry < 0;
+  return `<span class="kk-carry">${target} <span class="${neg ? "kk-carry-neg" : "kk-carry-pos"}">${neg ? "−" : "+"}
+    <span class="du-number">${esc(unsign(w.carry_fmt))}</span> ${neg ? "overspent" : "saved"}</span>
+    = <b class="du-number">${esc(w.allowance_fmt)}</b> can spend</span>`;
 }
 
-const goalBuckets = () => status.bucket_order.filter((b) => b.kind !== "fixed");
-const fixedBuckets = () => status.bucket_order.filter((b) => b.kind === "fixed");
-const name = (key) => status.people[key]?.name ?? key;
+function bill(label, iconName, kind, text) {
+  return `<span class="du-badge">${icon(iconName)}<span>${esc(label)}</span><span class="du-tag du-tag--${kind}">${esc(text)}</span></span>`;
+}
 
-// ---- cards ------------------------------------------------------------------------------------------
+const legend = `<div class="du-legend">${Object.entries(STATE_LABEL).map(([s, l]) =>
+  `<span><i class="du-swatch du-status--${s}" aria-hidden="true"></i>${l}</span>`).join("")}</div>`;
+
+// ---- header -----------------------------------------------------------------------------------------
 function renderHeader() {
+  $("party").innerHTML = sprite(status.people_order[0]) + sprite("chuchu") + sprite(status.people_order[1]);
   $("day").textContent = `day ${status.day}/${status.days}`;
-  for (const sel of [$("month"), $("f-month")]) {
-    sel.innerHTML = status.months.map((m) => {
-      const d = new Date(`${m}-01T00:00:00`);
-      const label = d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-      return `<option value="${m}"${m === status.month ? " selected" : ""}>${esc(label)}</option>`;
-    }).join("");
-  }
+  const opts = status.months.map((m) => `<option value="${m}"${m === status.month ? " selected" : ""}>${esc(monthLabel(m))}</option>`).join("");
+  $("month").innerHTML = opts;
+  $("f-month").innerHTML = opts;
+  const i = status.months.indexOf(status.month);  // newest first
+  $("month-prev").disabled = i < 0 || i >= status.months.length - 1;
+  $("month-next").disabled = i <= 0;
 }
 
+// ---- combined ---------------------------------------------------------------------------------------
 function renderCombined() {
   const c = status.combined, el = status.elapsed;
-  const [a, b] = status.people_order;
-  const paid = status.paid.people;
-  const bigSub = `${c.goals.left_fmt} left · ${Math.round(el * 100)}% of the month gone`;
-  const buckets = goalBuckets().map((x) => bar(x.label, c.buckets[x.key], { marker: el, bucket: x.key })).join("");
-  const stamps = fixedBuckets().map((x) => {
-    const f = c.buckets[x.key];
-    const kind = f.paid === f.count ? "paid" : f.paid === 0 ? "due" : "part";
-    const text = f.paid === f.count ? "PAID" : f.paid === 0 ? "DUE" : `${f.paid} of ${f.count} PAID`;
-    return stamp(x.label, f.amount_fmt, kind, text);
+  const g = c.goals;
+  const p = pct(g.spent, g.cap);
+  const buckets = goalBuckets().map((b) => budget(b.label, c.buckets[b.key], { bucket: b.key, pace: el })).join("");
+  const bills = fixedBuckets().map((b) => {
+    const f = c.buckets[b.key];
+    const [kind, text] = f.paid === f.count ? ["paid", "PAID"] : f.paid === 0 ? ["due", "DUE"] : ["partial", `${f.paid} of ${f.count} PAID`];
+    return bill(b.label, BUCKET_ICON[b.key] || "receipt", kind, `${f.amount_fmt} · ${text}`);
   }).join("");
-  const totalPaid = paid[a].total + paid[b].total + status.paid.unknown;
+  const paid = status.paid.people;
+  const who = status.people_order.map((k) => `<span>${esc(name(k))} paid <b class="du-number">${esc(paid[k].total_fmt)}</b></span>`).join("");
+  const unknown = status.paid.unknown ? `<span>payer unknown <b class="du-number">${esc(status.paid.unknown_fmt)}</b></span>` : "";
   const owes = status.balance.owes;
-  $("combined-sub").textContent = `${status.combined.outflow_plan_fmt} plan incl. bills`;
-  $("combined-body").innerHTML = `
-    ${bar("Goals", c.goals, { marker: el, big: true, sub: bigSub })}
-    <div class="bar-grid">${buckets}</div>
-    <div class="combined-foot">
-      <div class="stamps">${stamps}</div>
-      <div class="paidby">
-        <div class="section-title"><span>Who paid this month</span></div>
-        <div class="split" role="img" aria-label="Paid by">
-          <span class="pa" style="width:${pct(paid[a].total, totalPaid)}%"></span>
-          <span class="pb" style="width:${pct(paid[b].total, totalPaid)}%"></span>
-          <span class="pu" style="width:${pct(status.paid.unknown, totalPaid)}%"></span>
+  $("combined").innerHTML = `
+    <div class="du-combined-head">
+      <h2 id="combined-title" class="du-combined-heading">${icon("coin-stack", "du-icon du-icon--large")}COMBINED</h2>
+      <div>
+        <div class="du-total-line">
+          <strong class="du-number">${esc(g.spent_fmt)} / ${esc(g.cap_fmt)} spent${p == null ? "" : ` (${p}%)`}</strong>${legend}
         </div>
-        <div class="legend">
-          <span><i style="background:var(--person-a)"></i>${esc(name(a))} paid <b class="num">${esc(paid[a].total_fmt)}</b></span>
-          <span><i style="background:var(--person-b)"></i>${esc(name(b))} paid <b class="num">${esc(paid[b].total_fmt)}</b></span>
-          ${status.paid.unknown ? `<span><i style="background:var(--unknown)"></i>payer unknown <b class="num">${esc(status.paid.unknown_fmt)}</b></span>` : ""}
-        </div>
-        <div class="owes">${owes ? `${esc(name(owes.from))} owes ${esc(name(owes.to))} <span class="num">${esc(owes.amount_fmt)}</span>` : "All square"}</div>
+        <button type="button" class="kk-hit kk-hero" data-person="" data-bucket="" title="Show all spends">
+          ${meter(g, { label: "Combined monthly goals", hero: true, pace: el, paceLabel: `Month ${Math.round(el * 100)}%` })}
+        </button>
       </div>
-    </div>`;
+    </div>
+    <div class="du-buckets">${buckets}</div>
+    <footer class="du-combined-footer">
+      <div class="du-bills"><strong>Fixed bills:</strong>${bills}</div>
+      <div class="du-paid-strip"><strong>Who paid:</strong>${who}${unknown}</div>
+      <span class="du-badge du-settle">${icon("swap")}${owes
+        ? `${esc(name(owes.from))} owes ${esc(name(owes.to))} <span class="du-number">${esc(owes.amount_fmt)}</span>`
+        : "All square"}</span>
+    </footer>`;
 }
 
-/** "target RM100.00 + RM20.00 saved = RM120.00 can spend" (carry from earlier weeks of the month). */
-function carryNote(w) {
-  const target = `target <span class="num">${esc(w.target_fmt)}</span>`;
-  if (!w.carry) return `<span class="carry">${target}</span>`;
-  const neg = w.carry < 0;
-  const carry = `${neg ? "−" : "+"} <span class="num">${esc(unsign(w.carry_fmt))}</span> ${neg ? "overspent" : "saved"}`;
-  return `<span class="carry">${target} <span class="${neg ? "carry-neg" : "carry-pos"}">${carry}</span>
-    = <b class="num">${esc(w.allowance_fmt)}</b> can spend</span>`;
-}
-
-function weekRange(w) {
-  const f = (s) => new Date(`${s}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-  return `${f(w.start)} – ${f(w.end)}`;
-}
-
-function renderPerson(key, mirror) {
+// ---- personal cards ---------------------------------------------------------------------------------
+function renderPerson(key, i) {
   const p = status.people[key], el = status.elapsed;
+  const accent = i === 0 ? "var(--du-hanz)" : "var(--du-vanisa)";
   const weekly = goalBuckets().filter((b) => b.kind === "weekly");
   const monthly = goalBuckets().filter((b) => b.kind === "monthly");
-  const anyWeek = weekly.map((b) => p.buckets[b.key].week).find(Boolean);
-  const weekBars = weekly.map((b) => {
+  const current = status.today.startsWith(status.month);
+  const week = weekly.map((b) => p.buckets[b.key].week).find(Boolean);
+  const weekBars = !current ? `<p class="kk-muted">Not the current month.</p>` : weekly.map((b) => {
     const w = p.buckets[b.key].week;
-    if (!w) return `<p class="muted week-none">${esc(b.label)}: no ${esc(b.label.toLowerCase())} days counted this week.</p>`;
-    const sub = w.spent > w.allowance ? `over by ${unsign(w.left_fmt)} this week` : `${w.left_fmt} left this week`;
-    return bar(b.label, w, { cap: "allowance", marker: w.days ? w.days_elapsed / w.days : null,
-      person: key, bucket: b.key, sub, note: carryNote(w) });
+    if (!w) return `<p class="kk-muted">${esc(b.label)}: no ${esc(b.label.toLowerCase())} days counted this week.</p>`;
+    return budget(b.label, w, { cap: "allowance", person: key, bucket: b.key, note: carryNote(w),
+      pace: w.days ? w.days_elapsed / w.days : null, iconName: BUCKET_ICON[b.key] });
   }).join("");
-  // weekday/weekend over the month: spent against the sum of this month's week targets
-  const monthBars = [...weekly, ...monthly].map((b) => bar(b.label, p.buckets[b.key],
-    { marker: b.kind === "weekly" ? null : el, person: key, bucket: b.key })).join("");
-  const stamps = fixedBuckets().map((b) => {
+  // weekday/weekend over the whole month: spent against the sum of this month's week targets
+  const mini = [...weekly, ...monthly].map((b) => budget(b.label, p.buckets[b.key],
+    { person: key, bucket: b.key, pace: b.kind === "weekly" ? null : el, foot: false })).join("");
+  const bills = fixedBuckets().map((b) => {
     const f = p.buckets[b.key];
-    return stamp(b.label, f.amount_fmt, f.paid ? "paid" : "due", f.paid ? "PAID" : "DUE");
+    return bill(b.label, BUCKET_ICON[b.key] || "receipt", f.paid ? "paid" : "due", f.paid ? "PAID" : "DUE");
   }).join("");
-  const initial = esc(p.name.slice(0, 1));
-  return `<section class="card person${mirror ? " mirror" : ""}" aria-label="${esc(p.name)}">
-    <div class="card-head">
-      <span class="avatar" data-person="${esc(key)}">${initial}</span>
-      <span>${esc(p.name)}</span>
-      <span class="total"><span class="dot s-${esc(p.goals.status)}"></span> ${esc(p.goals.spent_fmt)} / ${esc(p.goals.cap_fmt)}</span>
-    </div>
-    <div class="card-body">
-      <div class="section-title"><span>This week</span><span>${anyWeek ? esc(weekRange(anyWeek)) : ""}</span></div>
-      ${status.today.startsWith(status.month) ? `<div class="two">${weekBars}</div>` : `<p class="muted">Not the current month.</p>`}
-      <div class="section-title"><span>This month</span></div>
-      ${bar("Total goals", p.goals, { marker: el, person: key })}
-      <div class="two">${monthBars}</div>
-      <div class="person-foot">
-        <div class="stamps">${stamps}</div>
-        ${p.unsorted ? `<button type="button" class="chip" data-person="${esc(key)}" data-bucket="unsorted">? Unsorted ${esc(p.unsorted_fmt)}</button>` : ""}
+  const unsorted = p.unsorted ? `<button type="button" class="du-badge du-unsorted kk-hit" data-person="${esc(key)}" data-bucket="unsorted">
+    ${icon("receipt")}Unsorted <span class="du-number">${esc(p.unsorted_fmt)}</span></button>` : "";
+  const g = p.goals;
+  return `<section class="du-panel" style="--accent:${accent}" aria-labelledby="${esc(key)}-title">
+    <header class="du-panel-title">
+      <span class="du-player">P${i + 1}</span>${sprite(key)}
+      <h2 id="${esc(key)}-title">${esc(p.name.toUpperCase())}</h2>${i === 1 ? sprite("chuchu") : ""}
+      <span class="du-heart">${icon("heart")}</span>
+    </header>
+    <div class="du-partner-body">
+      <div class="du-week">
+        <h3 class="du-section-label">This week${week ? ` <span class="kk-muted kk-range">${esc(shortDate(week.start))} – ${esc(shortDate(week.end))}</span>` : ""}</h3>
+        ${weekBars}
+      </div>
+      <div>
+        <div class="du-month-total"><h3>This month</h3><span class="du-number">${esc(g.spent_fmt)} / ${esc(g.cap_fmt)}</span></div>
+        <button type="button" class="kk-hit kk-hero" data-person="${esc(key)}" data-bucket="" title="Show ${esc(p.name)}'s spends">
+          ${meter(g, { label: `${p.name} monthly goals`, pace: el })}</button>
+        <div class="du-mini-buckets">${mini}</div>
       </div>
     </div>
+    <footer class="du-partner-footer"><strong>Fixed bills:</strong>${bills}${unsorted}</footer>
   </section>`;
 }
 
+// ---- needs answer -----------------------------------------------------------------------------------
 function renderNeeds() {
+  const box = $("needs");
   const items = status.pending.map((q) => {
     const asks = q.needs.map((n) => n === "bucket"
-      ? `which bucket?${q.options.length ? " " + q.options.map((o) => `<span class="opt">${esc(o)}</span>`).join("") : ""}`
-      : `who paid?${q.split ? ` <span class="muted">(${esc(q.split)})</span>` : ""}`);
-    const d = new Date(`${q.spent_on}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-    return `<li><b>#${q.id} ${esc(q.place)}</b><span class="num">${esc(q.total_fmt)}</span>
-      <span class="muted">${esc(q.who)} · ${esc(d)}</span><span class="q">${asks.join(" · ")}</span></li>`;
+      ? `${q.options.length ? q.options.map((o) => `<span class="du-tag">${esc(o)}</span>`).join(" or ") : "which bucket"}?`
+      : `who paid?${q.split ? ` <span class="kk-muted">(${esc(q.split)})</span>` : ""}`);
+    return `<li><b>${esc(q.place)}</b> <span class="du-number">${esc(q.total_fmt)}</span> · ${esc(q.who)} · ${esc(shortDate(q.spent_on))}:
+      ${asks.join(" · ")}</li>`;
   });
-  $("needs-list").innerHTML = items.join("") || `<li class="muted">Nothing to answer. All sorted.</li>`;
+  box.hidden = false;
+  box.innerHTML = items.length
+    ? `${icon("question")}<h2 id="needs-title">Needs answer:</h2>
+       <ul class="du-question-text kk-questions">${items.join("")}</ul>
+       <p class="kk-muted kk-telegram">Answer in the Telegram group.</p>`
+    : `${sprite("chuchu", "sleep")}<h2 id="needs-title">Needs answer:</h2>
+       <p class="du-question-text">Nothing to answer. All sorted.</p>`;
 }
 
-function renderStatus() {
-  renderHeader();
-  renderCombined();
-  const [a, b] = status.people_order;
-  $("people").innerHTML = renderPerson(a, false) + renderPerson(b, true);
-  renderNeeds();
-  fillFilterOptions();
-}
-
-// ---- table ------------------------------------------------------------------------------------------
+// ---- spending log -----------------------------------------------------------------------------------
 function options(sel, first, items) {
   const cur = state[sel.name];
   sel.innerHTML = `<option value="">${esc(first)}</option>` +
@@ -187,67 +216,87 @@ function options(sel, first, items) {
 
 function fillFilterOptions() {
   const people = status.people_order.map((k) => [k, name(k)]);
-  options($("f-person"), "Everyone", people);
-  options($("f-bucket"), "All buckets", [...goalBuckets().map((b) => [b.key, b.label]), ["unsorted", "Unsorted"]]);
-  options($("f-category"), "All categories", status.categories.map((c) => [c, c]));
-  options($("f-paid"), "Anyone", [...people, ["each", "Each paid own"]]);
+  options($("f-person"), "Who", people);
+  options($("f-bucket"), "Bucket", [...goalBuckets().map((b) => [b.key, b.label]), ["unsorted", "Unsorted"]]);
+  options($("f-category"), "Category", status.categories.map((c) => [c, c]));
+  options($("f-paid"), "Paid by", [...people, ["each", "Each paid own"]]);
   $("f-q").value = state.q;
 }
 
 function renderSpends(d) {
   const share = d.person ? `${name(d.person)} share` : null;
-  $("spends-head").innerHTML = `<tr><th>Date</th><th>Day</th><th>Who</th><th>Place / item</th><th>Bucket</th>
-    <th>Category</th><th class="amt">Amount</th>${share ? `<th class="amt">${esc(share)}</th>` : ""}<th>Split</th><th>Paid by</th></tr>`;
-  $("spends-rows").innerHTML = d.rows.map((r) => {
-    const bucket = r.bucket ? esc(r.bucket_label) : `<span class="flag">? Unsorted</span>`;
-    const payer = r.paid_by ? esc(r.paid_by_label) : `<span class="flag">? ask</span>`;
-    const meta = [r.who, r.bucket_label, r.category, r.split, `paid ${r.paid_by_label}`]
-      .concat(share ? [`${share} ${r.share_fmt}`] : []).filter(Boolean).map(esc).join(" · ");
-    return `<tr>
-      <td class="c-date num">${esc(r.date)}</td><td class="c-day">${esc(r.day)}</td>
-      <td class="c-hide-sm">${esc(r.who)}</td>
-      <td class="c-place"><b>${esc(r.place)}</b>${r.item ? `<span class="item">${esc(r.item)}</span>` : ""}</td>
-      <td class="c-hide-sm">${bucket}</td><td class="c-hide-sm">${esc(r.category)}</td>
-      <td class="c-amt amt num">${esc(r.total_sen_fmt)}</td>
-      ${share ? `<td class="c-hide-sm amt num">${esc(r.share_fmt)}</td>` : ""}
-      <td class="c-hide-sm split">${esc(r.split) || "—"}</td><td class="c-hide-sm">${payer}</td>
-      <td class="c-meta">${meta}${r.needs.length ? ` <span class="flag">· needs ${esc(r.needs.join(" + "))}</span>` : ""}</td>
-    </tr>`;
-  }).join("");
+  const heads = ["Date", "Day", "Who", "Place / item", "Bucket", "Category", "Amount", ...(share ? [share] : []), "Split", "Paid by"];
+  $("spends-head").innerHTML = `<tr>${heads.map((h) => `<th scope="col"${h === "Amount" || h === share ? ' class="du-amount"' : ""}>${esc(h)}</th>`).join("")}</tr>`;
+  const bucketCell = (r) => (r.bucket ? esc(r.bucket_label) : `<span class="du-tag du-tag--due">Unsorted</span>`);
+  const payerCell = (r) => (r.paid_by ? esc(r.paid_by_label) : `<span class="du-tag du-tag--due">ask</span>`);
+  const place = (r) => esc(r.place) + (r.item ? ` <span class="kk-muted">(${esc(r.item)})</span>` : "");
+  $("spends-rows").innerHTML = d.rows.map((r) => `<tr>
+      <td>${esc(r.date)}</td><td>${esc(r.day)}</td><td>${esc(r.who)}</td><td>${place(r)}</td>
+      <td>${bucketCell(r)}</td><td>${esc(r.category) || "—"}</td>
+      <td class="du-amount">${esc(r.total_sen_fmt)}</td>${share ? `<td class="du-amount">${esc(r.share_fmt)}</td>` : ""}
+      <td>${esc(r.split) || "—"}</td><td>${payerCell(r)}</td></tr>`).join("");
+  $("spends-cards").innerHTML = d.rows.map((r) => `<article class="du-entry">
+      <div class="du-entry-head"><span>${esc(r.date)} · ${esc(r.day)} · ${esc(r.who)}</span><span class="du-number">${esc(r.total_sen_fmt)}</span></div>
+      <h3 class="du-entry-title">${place(r)}</h3>
+      <p class="du-entry-meta">${bucketCell(r)} · ${esc(r.category) || "—"} · Paid by ${payerCell(r)}${share ? ` · ${esc(share)} ${esc(r.share_fmt)}` : ""}</p>
+      <p class="du-entry-split">Split: ${esc(r.split) || "—"}</p></article>`).join("");
   $("spends-empty").hidden = d.rows.length > 0;
-  $("spends-count").textContent = `${d.count} spend${d.count === 1 ? "" : "s"}`;
-  $("spends-summary").innerHTML = `${d.count} spend${d.count === 1 ? "" : "s"} · <span class="num">${esc(d.total_fmt)}</span>` +
-    (share ? ` <span class="muted">(${esc(share)})</span>` : "");
-  $("top-places").innerHTML = d.top_places.map((p) =>
-    `<li><span>${esc(p.place)}<small>${p.count}×</small></span><span class="num">${esc(p.total_fmt)}</span></li>`).join("")
-    || `<li class="muted">—</li>`;
+  $("spends-summary").innerHTML = `${d.count} spend${d.count === 1 ? "" : "s"} · <span class="du-number">${esc(d.total_fmt)}</span>` +
+    (share ? ` <span class="kk-muted">(${esc(share)})</span>` : "");
+  $("top-places").innerHTML = d.top_places.map((p, i) => `<div class="du-place">
+      <span class="du-medal" aria-label="Rank ${i + 1}">${i + 1}</span>${icon(BUCKET_ICON[p.bucket] || "receipt")}
+      <div>${esc(p.place)}<br><strong class="du-number">${p.count}x ${esc(p.total_fmt)}</strong></div></div>`).join("")
+    || `<p class="du-empty">No places yet.</p>`;
   $("csv").href = `/api/spends.csv?${query()}`;
 }
 
 // ---- loading ----------------------------------------------------------------------------------------
+let lastGood = null;
+function markStale(err) {
+  const el = $("stale");
+  el.hidden = false;
+  el.textContent = lastGood
+    ? `Couldn't refresh (${err.message}). Showing figures from ${lastGood.toLocaleTimeString()}.`
+    : `Couldn't load the ledger: ${err.message}`;
+}
+
 async function loadStatus() {
   status = await getJSON(`/api/status?${new URLSearchParams(state.month ? { month: state.month } : {})}`);
   state.month = status.month;
-  renderStatus();
+  renderHeader();
+  renderCombined();
+  $("partners").innerHTML = status.people_order.map(renderPerson).join("");
+  renderNeeds();
+  fillFilterOptions();
 }
 
 async function loadSpends() {
   renderSpends(await getJSON(`/api/spends?${query()}`));
-  syncURL();
+  const q = query();
+  history.replaceState(null, "", q ? `?${q}` : location.pathname);
 }
 
 let busy = null;
-async function refresh() {
+function refresh() {
   if (busy) return busy;
-  busy = Promise.all([loadStatus(), loadSpends()]).catch((e) => console.error(e)).finally(() => { busy = null; });
+  busy = loadStatus().then(loadSpends)
+    .then(() => { lastGood = new Date(); $("stale").hidden = true; })
+    .catch(markStale)
+    .finally(() => { busy = null; });
   return busy;
 }
 
 function filterTo(person, bucket) {
   Object.assign(state, { person, bucket, category: "", paid_by: "", q: "" });
   fillFilterOptions();
-  loadSpends();
+  loadSpends().catch(markStale);
   $("spends").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function goMonth(month) {
+  if (!month || month === state.month) return;
+  state.month = month;
+  refresh();
 }
 
 // ---- live updates: SSE when the ledger file changes, polling every 3 s if SSE drops ---------------
@@ -271,22 +320,26 @@ function connect() {
 
 // ---- wiring -----------------------------------------------------------------------------------------
 document.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-bucket], [data-person].chip");
-  if (t && (t.classList.contains("bar") || t.classList.contains("chip"))) filterTo(t.dataset.person || "", t.dataset.bucket || "");
+  const t = e.target.closest(".kk-hit");
+  if (t) filterTo(t.dataset.person || "", t.dataset.bucket || "");
+});
+document.addEventListener("animationend", (e) => {
+  if (e.target.dataset?.animation === "wave") e.target.dataset.animation = "idle";
 });
 
-for (const sel of [$("month"), $("f-month")]) {
-  sel.addEventListener("change", () => { state.month = sel.value; refresh(); });
-}
+$("month").addEventListener("change", (e) => goMonth(e.target.value));
+$("f-month").addEventListener("change", (e) => goMonth(e.target.value));
+$("month-prev").addEventListener("click", () => goMonth(status.months[status.months.indexOf(state.month) + 1]));
+$("month-next").addEventListener("click", () => goMonth(status.months[status.months.indexOf(state.month) - 1]));
 for (const id of ["f-person", "f-bucket", "f-category", "f-paid"]) {
-  $(id).addEventListener("change", (e) => { state[e.target.name] = e.target.value; loadSpends(); });
+  $(id).addEventListener("change", (e) => { state[e.target.name] = e.target.value; loadSpends().catch(markStale); });
 }
 let typing = null;
 $("f-q").addEventListener("input", (e) => {
   clearTimeout(typing);
-  typing = setTimeout(() => { state.q = e.target.value.trim(); loadSpends(); }, 250);
+  typing = setTimeout(() => { state.q = e.target.value.trim(); loadSpends().catch(markStale); }, 250);
 });
-$("f-clear").addEventListener("click", () => { for (const k of FILTERS) state[k] = ""; fillFilterOptions(); loadSpends(); });
+$("f-clear").addEventListener("click", () => { for (const k of FILTERS) state[k] = ""; fillFilterOptions(); loadSpends().catch(markStale); });
 
 const initial = new URLSearchParams(location.search);
 for (const k of ["month", ...FILTERS]) state[k] = initial.get(k) || "";

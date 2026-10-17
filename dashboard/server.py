@@ -45,6 +45,11 @@ MONEY = {"cap", "spent", "left", "amount", "allowance", "target", "carry", "tota
 CSV_COLUMNS = ["Date", "Day", "Who", "Place", "Item", "Bucket", "Category", "Amount", "Split", "Paid by"]
 
 
+def cell(text: str) -> str:
+    """Chat text in a CSV cell: a leading = + - @ would run as a spreadsheet formula, so quote it."""
+    return f"'{text}" if text[:1] in ("=", "+", "-", "@") else text
+
+
 def add_fmt(obj, currency: str):
     """Recursively add `<key>_fmt` next to every money field."""
     if isinstance(obj, list):
@@ -164,7 +169,8 @@ class App:
             amount_of = (lambda r: r["share"]) if pkey else (lambda r: r["total_sen"])
             places: dict[str, dict] = {}
             for r in out:
-                p = places.setdefault(norm_place(r["place"]) or r["place"], {"place": r["place"], "count": 0, "total": 0})
+                p = places.setdefault(norm_place(r["place"]) or r["place"],
+                                      {"place": r["place"], "bucket": r["bucket"], "count": 0, "total": 0})
                 p["count"] += 1
                 p["total"] += amount_of(r)
             top = sorted(places.values(), key=lambda p: (-p["total"], p["place"]))[:6]
@@ -178,8 +184,8 @@ class App:
         share_col = [f"{data['person'].title()} share"] if data["person"] else []
         w.writerow(CSV_COLUMNS + share_col)
         for r in reversed(data["rows"]):  # oldest first reads better in a spreadsheet
-            w.writerow([r["spent_on"], r["day"], r["who"], r["place"], r["item"], r["bucket_label"], r["category"],
-                        f"{r['total_sen'] / 100:.2f}", r["split"], r["paid_by_label"]]
+            w.writerow([r["spent_on"], r["day"], r["who"], cell(r["place"]), cell(r["item"]), r["bucket_label"],
+                        cell(r["category"]), f"{r['total_sen'] / 100:.2f}", r["split"], r["paid_by_label"]]
                        + ([f"{r['share'] / 100:.2f}"] if data["person"] else []))
         name = f"kura-kira-{data['month']}" + (f"-{data['person']}" if data["person"] else "") + ".csv"
         return buf.getvalue(), name

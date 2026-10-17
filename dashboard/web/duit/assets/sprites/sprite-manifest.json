@@ -1,0 +1,712 @@
+{
+  "version": "1.0.0",
+  "frameSize": {
+    "width": 64,
+    "height": 64
+  },
+  "anchor": {
+    "x": 32,
+    "y": 60
+  },
+  "pixelScale": "integer only: 1x or 2x",
+  "alpha": "binary 0 or 255",
+  "characters": {
+    "hanz": {
+      "sheet": "assets/sprites/hanz/hanz-sheet.png",
+      "sheet2x": "assets/sprites/hanz/hanz-sheet@2x.png",
+      "width": 256,
+      "height": 128,
+      "columns": 4,
+      "rows": 2,
+      "defaultFrame": "assets/sprites/hanz/idle-00.png",
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "y": 0,
+          "durationMs": 4000,
+          "loop": true,
+          "timing": "hold first 88%, then frames 1/2/3 for 2%/2%/8%",
+          "facing": "front-or-rest"
+        },
+        "wave": {
+          "row": 1,
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "y": 64,
+          "durationMs": 800,
+          "loop": false,
+          "timing": "equal steps(4)",
+          "facing": "front-or-rest"
+        }
+      },
+      "frames": [
+        {
+          "id": "hanz.idle.0",
+          "state": "idle",
+          "index": 0,
+          "x": 0,
+          "y": 0,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/hanz/idle-00.png",
+          "visibleBounds": {
+            "x": 16,
+            "y": 4,
+            "w": 32,
+            "h": 56
+          }
+        },
+        {
+          "id": "hanz.idle.1",
+          "state": "idle",
+          "index": 1,
+          "x": 64,
+          "y": 0,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/hanz/idle-01.png",
+          "visibleBounds": {
+            "x": 16,
+            "y": 4,
+            "w": 33,
+            "h": 56
+          }
+        },
+        {
+          "id": "hanz.idle.2",
+          "state": "idle",
+          "index": 2,
+          "x": 128,
+          "y": 0,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/hanz/idle-02.png",
+          "visibleBounds": {
+            "x": 16,
+            "y": 4,
+            "w": 33,
+            "h": 56
+          }
+        },
+        {
+          "id": "hanz.idle.3",
+          "state": "idle",
+          "index": 3,
+          "x": 192,
+          "y": 0,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/hanz/idle-03.png",
+          "visibleBounds": {
+            "x": 16,
+            "y": 4,
+            "w": 33,
+            "h": 56
+          }
+        },
+        {
+          "id": "hanz.wave.0",
+          "state": "wave",
+          "index": 0,
+          "x": 0,
+          "y": 64,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/hanz/wave-00.png",
+          "visibleBounds": {
+            "x": 16,
+            "y": 4,
+            "w": 33,
+            "h": 56
+          }
+        },
+        {
+          "id": "hanz.wave.1",
+          "state": "wave",
+          "index": 1,
+          "x": 64,
+          "y": 64,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/hanz/wave-01.png",
+          "visibleBounds": {
+            "x": 16,
+            "y": 4,
+            "w": 33,
+            "h": 56
+          }
+        },
+        {
+          "id": "hanz.wave.2",
+          "state": "wave",
+          "index": 2,
+          "x": 128,
+          "y": 64,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/hanz/wave-02.png",
+          "visibleBounds": {
+            "x": 12,
+            "y": 4,
+            "w": 37,
+            "h": 56
+          }
+        },
+        {
+          "id": "hanz.wave.3",
+          "state": "wave",
+          "index": 3,
+          "x": 192,
+          "y": 64,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/hanz/wave-03.png",
+          "visibleBounds": {
+            "x": 16,
+            "y": 4,
+            "w": 33,
+            "h": 56
+          }
+        }
+      ]
+    },
+    "vanisa": {
+      "sheet": "assets/sprites/vanisa/vanisa-sheet.png",
+      "sheet2x": "assets/sprites/vanisa/vanisa-sheet@2x.png",
+      "width": 256,
+      "height": 128,
+      "columns": 4,
+      "rows": 2,
+      "defaultFrame": "assets/sprites/vanisa/idle-00.png",
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "y": 0,
+          "durationMs": 4400,
+          "loop": true,
+          "timing": "hold first 88%, then frames 1/2/3 for 2%/2%/8%",
+          "facing": "front-or-rest"
+        },
+        "wave": {
+          "row": 1,
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "y": 64,
+          "durationMs": 800,
+          "loop": false,
+          "timing": "equal steps(4)",
+          "facing": "front-or-rest"
+        }
+      },
+      "frames": [
+        {
+          "id": "vanisa.idle.0",
+          "state": "idle",
+          "index": 0,
+          "x": 0,
+          "y": 0,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/vanisa/idle-00.png",
+          "visibleBounds": {
+            "x": 15,
+            "y": 4,
+            "w": 37,
+            "h": 56
+          }
+        },
+        {
+          "id": "vanisa.idle.1",
+          "state": "idle",
+          "index": 1,
+          "x": 64,
+          "y": 0,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/vanisa/idle-01.png",
+          "visibleBounds": {
+            "x": 15,
+            "y": 4,
+            "w": 37,
+            "h": 56
+          }
+        },
+        {
+          "id": "vanisa.idle.2",
+          "state": "idle",
+          "index": 2,
+          "x": 128,
+          "y": 0,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/vanisa/idle-02.png",
+          "visibleBounds": {
+            "x": 15,
+            "y": 4,
+            "w": 37,
+            "h": 56
+          }
+        },
+        {
+          "id": "vanisa.idle.3",
+          "state": "idle",
+          "index": 3,
+          "x": 192,
+          "y": 0,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/vanisa/idle-03.png",
+          "visibleBounds": {
+            "x": 15,
+            "y": 4,
+            "w": 37,
+            "h": 56
+          }
+        },
+        {
+          "id": "vanisa.wave.0",
+          "state": "wave",
+          "index": 0,
+          "x": 0,
+          "y": 64,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/vanisa/wave-00.png",
+          "visibleBounds": {
+            "x": 15,
+            "y": 4,
+            "w": 37,
+            "h": 56
+          }
+        },
+        {
+          "id": "vanisa.wave.1",
+          "state": "wave",
+          "index": 1,
+          "x": 64,
+          "y": 64,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/vanisa/wave-01.png",
+          "visibleBounds": {
+            "x": 13,
+            "y": 4,
+            "w": 39,
+            "h": 56
+          }
+        },
+        {
+          "id": "vanisa.wave.2",
+          "state": "wave",
+          "index": 2,
+          "x": 128,
+          "y": 64,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/vanisa/wave-02.png",
+          "visibleBounds": {
+            "x": 12,
+            "y": 4,
+            "w": 40,
+            "h": 56
+          }
+        },
+        {
+          "id": "vanisa.wave.3",
+          "state": "wave",
+          "index": 3,
+          "x": 192,
+          "y": 64,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/vanisa/wave-03.png",
+          "visibleBounds": {
+            "x": 13,
+            "y": 4,
+            "w": 39,
+            "h": 56
+          }
+        }
+      ]
+    },
+    "chuchu": {
+      "sheet": "assets/sprites/chuchu/chuchu-sheet.png",
+      "sheet2x": "assets/sprites/chuchu/chuchu-sheet@2x.png",
+      "width": 256,
+      "height": 192,
+      "columns": 4,
+      "rows": 3,
+      "defaultFrame": "assets/sprites/chuchu/idle-00.png",
+      "animations": {
+        "idle": {
+          "row": 0,
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "y": 0,
+          "durationMs": 4800,
+          "loop": true,
+          "timing": "hold first 88%, then frames 1/2/3 for 2%/2%/8%",
+          "facing": "front-or-rest"
+        },
+        "walk": {
+          "row": 1,
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "y": 64,
+          "durationMs": 640,
+          "loop": true,
+          "timing": "equal steps(4)",
+          "facing": "right"
+        },
+        "sleep": {
+          "row": 2,
+          "frames": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "y": 128,
+          "durationMs": 2400,
+          "loop": true,
+          "timing": "equal steps(4)",
+          "facing": "front-or-rest"
+        }
+      },
+      "frames": [
+        {
+          "id": "chuchu.idle.0",
+          "state": "idle",
+          "index": 0,
+          "x": 0,
+          "y": 0,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/chuchu/idle-00.png",
+          "visibleBounds": {
+            "x": 11,
+            "y": 14,
+            "w": 41,
+            "h": 46
+          }
+        },
+        {
+          "id": "chuchu.idle.1",
+          "state": "idle",
+          "index": 1,
+          "x": 64,
+          "y": 0,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/chuchu/idle-01.png",
+          "visibleBounds": {
+            "x": 11,
+            "y": 14,
+            "w": 43,
+            "h": 46
+          }
+        },
+        {
+          "id": "chuchu.idle.2",
+          "state": "idle",
+          "index": 2,
+          "x": 128,
+          "y": 0,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/chuchu/idle-02.png",
+          "visibleBounds": {
+            "x": 12,
+            "y": 14,
+            "w": 39,
+            "h": 46
+          }
+        },
+        {
+          "id": "chuchu.idle.3",
+          "state": "idle",
+          "index": 3,
+          "x": 192,
+          "y": 0,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/chuchu/idle-03.png",
+          "visibleBounds": {
+            "x": 12,
+            "y": 14,
+            "w": 41,
+            "h": 46
+          }
+        },
+        {
+          "id": "chuchu.walk.0",
+          "state": "walk",
+          "index": 0,
+          "x": 0,
+          "y": 64,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/chuchu/walk-00.png",
+          "visibleBounds": {
+            "x": 4,
+            "y": 17,
+            "w": 55,
+            "h": 43
+          }
+        },
+        {
+          "id": "chuchu.walk.1",
+          "state": "walk",
+          "index": 1,
+          "x": 64,
+          "y": 64,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/chuchu/walk-01.png",
+          "visibleBounds": {
+            "x": 4,
+            "y": 16,
+            "w": 56,
+            "h": 44
+          }
+        },
+        {
+          "id": "chuchu.walk.2",
+          "state": "walk",
+          "index": 2,
+          "x": 128,
+          "y": 64,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/chuchu/walk-02.png",
+          "visibleBounds": {
+            "x": 4,
+            "y": 16,
+            "w": 56,
+            "h": 44
+          }
+        },
+        {
+          "id": "chuchu.walk.3",
+          "state": "walk",
+          "index": 3,
+          "x": 192,
+          "y": 64,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/chuchu/walk-03.png",
+          "visibleBounds": {
+            "x": 4,
+            "y": 16,
+            "w": 56,
+            "h": 44
+          }
+        },
+        {
+          "id": "chuchu.sleep.0",
+          "state": "sleep",
+          "index": 0,
+          "x": 0,
+          "y": 128,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/chuchu/sleep-00.png",
+          "visibleBounds": {
+            "x": 5,
+            "y": 29,
+            "w": 55,
+            "h": 31
+          }
+        },
+        {
+          "id": "chuchu.sleep.1",
+          "state": "sleep",
+          "index": 1,
+          "x": 64,
+          "y": 128,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/chuchu/sleep-01.png",
+          "visibleBounds": {
+            "x": 5,
+            "y": 28,
+            "w": 53,
+            "h": 32
+          }
+        },
+        {
+          "id": "chuchu.sleep.2",
+          "state": "sleep",
+          "index": 2,
+          "x": 128,
+          "y": 128,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/chuchu/sleep-02.png",
+          "visibleBounds": {
+            "x": 5,
+            "y": 28,
+            "w": 53,
+            "h": 32
+          }
+        },
+        {
+          "id": "chuchu.sleep.3",
+          "state": "sleep",
+          "index": 3,
+          "x": 192,
+          "y": 128,
+          "w": 64,
+          "h": 64,
+          "anchor": {
+            "x": 32,
+            "y": 60
+          },
+          "file": "assets/sprites/chuchu/sleep-03.png",
+          "visibleBounds": {
+            "x": 5,
+            "y": 29,
+            "w": 54,
+            "h": 31
+          }
+        }
+      ]
+    }
+  }
+}

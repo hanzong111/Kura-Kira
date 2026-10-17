@@ -65,7 +65,8 @@ dashboard/install-service.sh                         # always-on user service on
 ```
 
 Read-only, stdlib only. `dashboard/server.py` serves `/api/status`, `/api/spends`, `/api/spends.csv` and
-`/api/events` (SSE on ledger writes). Colours and fonts live in `dashboard/web/theme.css` and sprites in
-`dashboard/web/assets/`, so a new design can replace them without touching the layout (`app.css`, `app.js`).
+`/api/events` (SSE on ledger writes). The look is the DUIT Co-op Arcade pack: its runtime files (fonts, sprites,
+icons, `duit.css`) are in `dashboard/web/duit/`, and the handoff, reference mockup and source art are in
+`docs/design/duit-arcade/`. `dashboard/web/app.css` only adds what the dashboard needs on top.
 
 Data lives in `data/duit.db` (gitignored). Override with `DUIT_DB` / `DUIT_CONFIG`.

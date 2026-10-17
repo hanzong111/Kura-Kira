@@ -1,0 +1,219 @@
+[
+  {
+    "id": "house",
+    "svg": "assets/icons/house.svg",
+    "png2x": "assets/icons/house@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "car",
+    "svg": "assets/icons/car.svg",
+    "png2x": "assets/icons/car@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "coin-stack",
+    "svg": "assets/icons/coin-stack.svg",
+    "png2x": "assets/icons/coin-stack@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "heart",
+    "svg": "assets/icons/heart.svg",
+    "png2x": "assets/icons/heart@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "receipt",
+    "svg": "assets/icons/receipt.svg",
+    "png2x": "assets/icons/receipt@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "question",
+    "svg": "assets/icons/question.svg",
+    "png2x": "assets/icons/question@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "arrow-left",
+    "svg": "assets/icons/arrow-left.svg",
+    "png2x": "assets/icons/arrow-left@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "arrow-right",
+    "svg": "assets/icons/arrow-right.svg",
+    "png2x": "assets/icons/arrow-right@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "chevron-down",
+    "svg": "assets/icons/chevron-down.svg",
+    "png2x": "assets/icons/chevron-down@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "search",
+    "svg": "assets/icons/search.svg",
+    "png2x": "assets/icons/search@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "download",
+    "svg": "assets/icons/download.svg",
+    "png2x": "assets/icons/download@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "swap",
+    "svg": "assets/icons/swap.svg",
+    "png2x": "assets/icons/swap@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "chart",
+    "svg": "assets/icons/chart.svg",
+    "png2x": "assets/icons/chart@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "sushi",
+    "svg": "assets/icons/sushi.svg",
+    "png2x": "assets/icons/sushi@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "grocery",
+    "svg": "assets/icons/grocery.svg",
+    "png2x": "assets/icons/grocery@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "petrol",
+    "svg": "assets/icons/petrol.svg",
+    "png2x": "assets/icons/petrol@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "calendar",
+    "svg": "assets/icons/calendar.svg",
+    "png2x": "assets/icons/calendar@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "weekday",
+    "svg": "assets/icons/weekday.svg",
+    "png2x": "assets/icons/weekday@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "weekend",
+    "svg": "assets/icons/weekend.svg",
+    "png2x": "assets/icons/weekend@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "extra",
+    "svg": "assets/icons/extra.svg",
+    "png2x": "assets/icons/extra@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "paw",
+    "svg": "assets/icons/paw.svg",
+    "png2x": "assets/icons/paw@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "soap",
+    "svg": "assets/icons/soap.svg",
+    "png2x": "assets/icons/soap@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "toll",
+    "svg": "assets/icons/toll.svg",
+    "png2x": "assets/icons/toll@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "parents",
+    "svg": "assets/icons/parents.svg",
+    "png2x": "assets/icons/parents@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "check",
+    "svg": "assets/icons/check.svg",
+    "png2x": "assets/icons/check@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "clock",
+    "svg": "assets/icons/clock.svg",
+    "png2x": "assets/icons/clock@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "close",
+    "svg": "assets/icons/close.svg",
+    "png2x": "assets/icons/close@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "filter",
+    "svg": "assets/icons/filter.svg",
+    "png2x": "assets/icons/filter@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "plus",
+    "svg": "assets/icons/plus.svg",
+    "png2x": "assets/icons/plus@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "medal",
+    "svg": "assets/icons/medal.svg",
+    "png2x": "assets/icons/medal@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "empty-wallet",
+    "svg": "assets/icons/empty-wallet.svg",
+    "png2x": "assets/icons/empty-wallet@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  }
+]
