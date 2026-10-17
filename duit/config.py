@@ -43,6 +43,7 @@ class Config:
     alert_at: tuple[float, ...] = (0.8, 1.0)
     ask_extra_over_sen: int = 10000
     tracking_start: date | None = None  # when tracking began (weekly budgets only)
+    telegram_chat_id: str = ""           # the group scheduled messages are posted to
     before_start: str = "ignore"         # pre-start days: "ignore" (prorate from start) or "maxed" (on budget)
 
     @property
@@ -94,6 +95,7 @@ def parse(data: dict) -> Config:
         alert_at=tuple(rules.get("alert_at", (0.8, 1.0))),
         ask_extra_over_sen=parse_amount(rules.get("ask_extra_over", 100)),
         tracking_start=_date(rules.get("tracking_start")),
+        telegram_chat_id=str(data.get("telegram", {}).get("chat_id", "") or ""),
         before_start=_before_start(rules.get("before_start", "ignore")),
     )
 

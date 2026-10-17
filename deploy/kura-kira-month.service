@@ -1,0 +1,8 @@
+[Unit]
+Description=Kura-Kira: Month-end report card (1st, 09:05)
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/duit
+Environment=PYTHONPATH=
+ExecStart=%h/duit/.venv/bin/python -m duit job month --send

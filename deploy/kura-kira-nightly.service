@@ -5,4 +5,4 @@ Description=Kura-Kira ledger: nightly backup + integrity check
 Type=oneshot
 WorkingDirectory=%h/duit
 Environment=PYTHONPATH=
-ExecStart=/bin/sh -c '%h/duit/.venv/bin/python -m duit backup && %h/duit/.venv/bin/python -m duit check >> %h/duit/data/nightly.log 2>&1'
+ExecStart=/bin/sh -c '%h/duit/.venv/bin/python -m duit backup && %h/duit/.venv/bin/python -m duit check >> %h/duit/data/nightly.log 2>&1 || %h/duit/.venv/bin/python -m duit job check --send'

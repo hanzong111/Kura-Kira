@@ -4,6 +4,7 @@
     python -m duit check              invariant checks (exit 1 on problems)
     python -m duit backup             online backup to data/backups (keeps 30)
     python -m duit backfill FROM TO   on-budget placeholder spends for days before tracking
+    python -m duit job NAME [--send]  scheduled message: due | recap | month | check
 """
 
 import json
@@ -58,6 +59,16 @@ def main(argv: list[str]) -> int:
         for r in backfill(led, date.fromisoformat(argv[1]), date.fromisoformat(argv[2])):
             print(f"{'(exists) ' if r['duplicate'] else ''}#{r['id']} {cfg.people[r['person']].name} {r['bucket']} "
                   f"{r['from']}..{r['to']} {fmt(r['amount'], cfg.currency)}")
+    elif cmd == "job":
+        from .jobs import run, send
+        text = run(led, argv[1], led.today())
+        if text is None:
+            print("(nothing to send)")
+        elif "--send" in argv:
+            send(cfg, text)
+            print("sent")
+        else:
+            print(text)
     elif cmd == "json":
         print(json.dumps(led.status(argv[1] if len(argv) > 1 else None), indent=2))
     else:

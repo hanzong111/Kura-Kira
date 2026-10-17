@@ -4,6 +4,9 @@
 timezone = "Asia/Kuala_Lumpur"
 currency = "RM"
 
+[telegram]
+chat_id = ""   # group for scheduled messages (recap, reminders)
+
 # Telegram user IDs map senders to people. Display names can change; IDs can't.
 [people.hanz]
 name = "Hanz"
