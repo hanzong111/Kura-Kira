@@ -5,7 +5,7 @@
 | Bucket | Amount | Kind |
 |---|---|---|
 | Weekday (Mon-Fri) | RM20 per day (RM100 a full week) | weekly target + carry-over |
-| Weekend (Sat-Sun) | RM100 per day (RM200 a full weekend) | weekly target + carry-over |
+| Weekend (Sat-Sun) | RM70 per day (RM140 a full weekend) | weekly target + carry-over |
 | Extra | RM300 | monthly cap |
 | Grocery | RM200 | monthly cap |
 | Chu Chu / Toiletries | RM60 | monthly cap |
@@ -27,7 +27,7 @@ plus fixed RM1,300 per person.
   everyday spending -> Weekday or Weekend by the date (Malaysia time). Weekend = Sat-Sun only.
 - **Unsure about category/bucket** -> the entry is saved as Unsorted and the bot asks; the answer is learned per place.
 - **Extra** only when the message says "extra" or the bot asks (an everyday spend share over RM100).
-- **Weekly budgets:** daily amounts (RM20 per weekday, RM100 per weekend day); a week's target = daily amount x
+- **Weekly budgets:** daily amounts (RM20 per weekday, RM70 per weekend day); a week's target = daily amount x
   its days in the month (full week RM100 / RM200, Thu-Fri = RM40, a lone Saturday = RM100). Under/overspend in the earlier
   weeks of the month carries into this week: **can spend = target + carry-over**, never below 0. Resets each month.
   The bot and dashboard always show all three: target, carry-over (saved / overspent), can spend.

@@ -106,20 +106,23 @@ Every guard and the test that pins it are listed in [docs/ACCURACY.md](docs/ACCU
 
 ### The plan
 
-Per person, per month (from `config.example.toml`):
+Per person, per month (your real plan lives in `config.toml`):
 
 | Bucket | Amount | Kind |
 |---|---|---|
 | Weekday (Mon–Fri) | RM20 a day (RM100 a full week) | weekly target with carry-over |
-| Weekend (Sat–Sun) | RM100 a day (RM200 a full weekend) | weekly target with carry-over |
+| Weekend (Sat–Sun) | RM70 a day (RM140 a full weekend) | weekly target with carry-over |
 | Extra | RM300 | monthly cap |
-| Grocery | RM200 | monthly cap |
-| Chu Chu / Toiletries | RM60 | monthly cap |
-| Petrol | RM200 | monthly cap |
-| Toll | RM50 | monthly cap |
-| Parents | RM500 | monthly cap |
-| House | RM1,000 | fixed bill: Paid / Due |
-| Car | RM300 | fixed bill: Paid / Due |
+| Grocery | RM200 | monthly cap, shared: split half each whoever paid |
+| Chu Chu / Toiletries | RM60 | monthly cap, shared; never counts as weekday/weekend |
+| Petrol | RM200 | monthly cap, shared |
+| Toll | RM50 | monthly cap, shared |
+| Parents | RM500 | fixed bill: Paid / Due |
+| House | RM1,000 | fixed bill: Paid / Due (Vanisa auto-Paid) |
+| Car | RM300 | fixed bill: Paid / Due (Vanisa auto-Paid) |
+| Mopping machine | RM250 | installment, Sep–Nov 2026 only (Vanisa auto-Paid) |
+
+The monthly total on the dashboard is the whole plan: spending targets plus every fixed bill.
 
 <img src="dashboard/web/duit/assets/sprites/chuchu/idle-00.png" alt="" width="64" align="right">
 
