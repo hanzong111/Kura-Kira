@@ -114,7 +114,8 @@ def specs(cfg: Config) -> list[dict]:
          "parameters": {"type": "object", "required": ["from_person", "to_person"], "properties": {
              "from_person": _PERSON, "to_person": _PERSON, "amount": _AMOUNT}}},
         {"name": "duit_pay_fixed",
-         "description": "Mark fixed bills paid ('house paid', 'house + car paid'). Defaults to the sender.",
+         "description": "Mark fixed bills paid ('house paid', 'house + car paid'). Defaults to the sender. Bills: " +
+                        ", ".join(f"{k} = {b.label}" for k, b in cfg.buckets.items() if b.kind == "fixed") + ".",
          "parameters": {"type": "object", "required": ["bills"], "properties": {
              "bills": {"type": "array", "items": {"type": "string", "enum": [k for k, b in cfg.buckets.items()
                                                                             if b.kind == "fixed"]}},
@@ -433,7 +434,8 @@ class Tools:
         person = self._person(a.get("person"), ctx) or self._sender(ctx)
         bills = a.get("bills") or []
         if not bills:
-            raise LedgerError("which bill — house or car?")
+            raise LedgerError("which bill? " + ", ".join(b.label for b in self.cfg.buckets.values()
+                                                          if b.kind == "fixed"))
         month = a.get("month") or month_key(self._sent_day(ctx))
         lines = [replies.fixed_reply(self.cfg, self.led.pay_fixed(person, b, month)) for b in bills]
         return {"reply": "\n".join(lines)}

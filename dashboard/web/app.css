@@ -142,3 +142,8 @@ strong, b, h3, .du-section-label, .du-month-total, .du-budget-label strong, .du-
 }
 .kk-transfers { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 15px; }
 .kk-transfers .du-badge { gap: 6px; }
+.kk-installments { padding: 0 12px 12px; }
+.kk-installment { cursor: default; display: block; }
+.kk-installment .du-meter, .kk-installment .du-budget-foot { display: block; }
+.kk-installment .du-budget-foot { display: flex; }
+@media (max-width: 767px) { .kk-installments { padding: 0 10px 10px; } }

@@ -19,7 +19,7 @@ const fill = (n, d) => Math.max(0, Math.min(1, Number.isFinite(ratio(n, d)) ? ra
 const STATES = { ok: "on-track", ahead: "ahead", over: "over" };
 const STATE_LABEL = { "on-track": "On track", ahead: "Ahead of pace", over: "Over budget" };
 const BUCKET_ICON = { weekday: "weekday", weekend: "weekend", extra: "extra", grocery: "grocery", chuchu: "paw",
-                      petrol: "petrol", toll: "toll", parents: "parents", house: "house", car: "car" };
+                      petrol: "petrol", toll: "toll", parents: "parents", house: "house", car: "car", mop: "calendar" };
 const SPRITES = ["hanz", "vanisa", "chuchu"];
 
 const icon = (name, cls = "du-icon") => `<img class="${cls}" src="${ASSETS}/icons/${name}.svg" alt="" aria-hidden="true">`;
@@ -90,6 +90,24 @@ function bill(label, iconName, kind, text) {
   return `<span class="du-badge">${icon(iconName)}<span>${esc(label)}</span><span class="du-tag du-tag--${kind}">${esc(text)}</span></span>`;
 }
 
+/** Installment bars (fixed bills with months): paid so far over the whole plan, plus this month's Paid/Due. */
+function installments(buckets) {
+  return fixedBuckets().filter((b) => buckets[b.key]?.installment).map((b) => {
+    const f = buckets[b.key], i = f.installment;
+    const bar = { spent: i.spent, spent_fmt: i.spent_fmt, cap: i.total, cap_fmt: i.total_fmt, left_fmt: i.left_fmt,
+                  status: "ok" };
+    const now = f.count != null ? (f.paid === f.count ? ["paid", "PAID"] : ["due", `${f.paid} of ${f.count} PAID`])
+                                : (f.paid ? ["paid", "PAID"] : ["due", "DUE"]);
+    return `<div class="du-budget kk-installment">
+      <span class="du-budget-label"><strong>${icon(BUCKET_ICON[b.key] || "receipt", "du-icon kk-bucket-icon")}${esc(b.label)}</strong>
+        <span class="du-budget-value">${esc(i.spent_fmt)} / ${esc(i.total_fmt)} paid</span></span>
+      ${meter(bar, { label: `${b.label} installment` })}
+      <span class="du-budget-foot"><span>${i.done} of ${i.count} installments paid</span>
+        <span>${esc(monthLabel(status.month).split(" ")[0])} <span class="du-tag du-tag--${now[0]}">${esc(now[1])}</span></span></span>
+    </div>`;
+  }).join("");
+}
+
 const legend = `<div class="du-legend">${Object.entries(STATE_LABEL).map(([s, l]) =>
   `<span><i class="du-swatch du-status--${s}" aria-hidden="true"></i>${l}</span>`).join("")}</div>`;
 
@@ -128,7 +146,7 @@ function renderCombined() {
         </button>
       </div>
     </div>
-    <div class="du-buckets">${buckets}</div>
+    <div class="du-buckets">${buckets}${installments(c.buckets)}</div>
     <footer class="du-combined-footer">
       <div class="du-bills"><strong>Fixed bills:</strong>${bills}</div>
     </footer>`;
@@ -216,6 +234,7 @@ function renderPerson(key, i) {
         <div class="du-mini-buckets">${mini}</div>
       </div>
     </div>
+    ${installments(p.buckets) ? `<div class="kk-installments">${installments(p.buckets)}</div>` : ""}
     <footer class="du-partner-footer"><strong>Fixed bills:</strong>${bills}${unsorted}</footer>
   </section>`;
 }

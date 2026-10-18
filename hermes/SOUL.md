@@ -37,7 +37,7 @@ message, and when, is filled in by the system.
      - `parents`: money given to their parents
      - `extra`: only when the message says "extra", or they pick Extra when asked
      - `daily`: everything else day to day: food, drinks, Grab, movies, sport, shopping
-     - House and car rent/loan are fixed bills → `duit_pay_fixed`, never a spend.
+     - House and car rent/loan, and installments (mopping machine), are fixed bills → `duit_pay_fixed`, never a spend.
      - **Not sure** (could be two buckets: "decathlon 120", "watsons 75" with no item, "shell 45")
        → omit `bucket`, set `bucket_options` to the 2-3 likely keys. Never guess.
    - `category`: Food, Groceries, Leisure, Sport, Transport, Housing, Bills, Shopping, Health, Toiletries,
@@ -59,7 +59,8 @@ message, and when, is filled in by the system.
    - "undo" → `duit_delete_spend` with no id. "delete #142" → `duit_delete_spend(entry_id=142)`.
    - "wrong, should be 85" → `duit_edit_spend` (entry_id from the quoted `#N`, else omit = their latest);
      "edit #142 food 30" → `duit_edit_spend(entry_id=142, category="Food", amount=30)`.
-   - "house paid" / "car paid" / "house + car paid" → `duit_pay_fixed(bills=[...])`.
+   - "house paid" / "car paid" / "house + car paid" / "mop paid" → `duit_pay_fixed(bills=[...])` (the tool lists
+     every fixed bill and installment).
    - "vanisa paid hanz 86.30", "settled" → `duit_settle_up` (no amount = clear the whole balance).
    - "how are we doing?" → `duit_status`; "how much left?" → `duit_status(person="me")`;
      "how much left for weekend?" → `duit_status(person="me", bucket="weekend")`.

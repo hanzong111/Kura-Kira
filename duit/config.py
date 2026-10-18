@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import tomllib
 from dataclasses import dataclass
 from datetime import date
@@ -32,6 +33,10 @@ class Bucket:
     days: tuple[int, ...] = ()
     auto_paid: tuple[str, ...] = ()
     shared: bool = False  # borne half each, whoever paid (unless the message says whose it is)
+    months: tuple[str, ...] = ()  # fixed bills only: the months it runs (an installment); empty = every month
+
+    def active(self, month: str) -> bool:
+        return not self.months or month in self.months
 
 
 @dataclass(frozen=True)
@@ -62,6 +67,10 @@ class Config:
                 return p
         raise ValueError(f"unknown person: {name!r} (known: {', '.join(self.people)})")
 
+    def buckets_in(self, month: str) -> dict[str, Bucket]:
+        """The buckets that exist in `month` (an installment only shows in its own months)."""
+        return {k: b for k, b in self.buckets.items() if b.active(month)}
+
     def weekly_bucket_for(self, weekday: int) -> Bucket:
         for b in self.buckets.values():
             if b.kind == "weekly" and weekday in b.days:
@@ -84,8 +93,14 @@ def parse(data: dict) -> Config:
         shared = bool(v.get("shared", False))
         if shared and kind != "monthly":
             raise ValueError(f"bucket {k}: only monthly buckets can be shared")
+        months = tuple(str(m) for m in v.get("months", ()))
+        if months and kind != "fixed":
+            raise ValueError(f"bucket {k}: only fixed bills can have months")
+        for m in months:
+            if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", m):
+                raise ValueError(f"bucket {k}: month must be YYYY-MM, got {m!r}")
         buckets[k] = Bucket(k, v.get("label", k.title()), kind, parse_amount(v["amount"]),
-                            tuple(v.get("days", ())), auto, shared)
+                            tuple(v.get("days", ())), auto, shared, tuple(sorted(months)))
     covered = sorted(d for b in buckets.values() if b.kind == "weekly" for d in b.days)
     if covered and covered != sorted(set(covered)):
         raise ValueError("weekly buckets overlap on some weekday")

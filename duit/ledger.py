@@ -159,21 +159,21 @@ class Ledger:
 
     # ---- months & plans ---------------------------------------------------------------------------
     def ensure_month(self, month: str | None = None) -> str:
-        """Create the month's plan (copied from last month, else config) and fixed-bill rows."""
+        """Create the month's plan (copied from last month, else config) and fixed-bill rows. A bucket added
+        to the config later (e.g. an installment) gets its plan row in months that already exist."""
         month = month or month_key(self.today())
         month_bounds(month)  # validates format
+        buckets = self.cfg.buckets_in(month)
         with self._tx():
-            have = self.conn.execute("SELECT 1 FROM plans WHERE month=? LIMIT 1", (month,)).fetchone()
-            if not have:
-                prev = self.conn.execute("SELECT person, bucket, amount_sen FROM plans WHERE month=?",
-                                         (prev_month(month),)).fetchall()
-                rows = {(r["person"], r["bucket"]): r["amount_sen"] for r in prev}
-                for p in self.cfg.people:
-                    for k, b in self.cfg.buckets.items():
-                        amt = rows.get((p, k), b.amount_sen)
-                        self.conn.execute("INSERT INTO plans VALUES (?,?,?,?)", (month, p, k, amt))
+            prev = self.conn.execute("SELECT person, bucket, amount_sen FROM plans WHERE month=?",
+                                     (prev_month(month),)).fetchall()
+            rows = {(r["person"], r["bucket"]): r["amount_sen"] for r in prev}
             for p in self.cfg.people:
-                for k, b in self.cfg.buckets.items():
+                for k, b in buckets.items():
+                    amt = rows.get((p, k), b.amount_sen)
+                    self.conn.execute("INSERT OR IGNORE INTO plans VALUES (?,?,?,?)", (month, p, k, amt))
+            for p in self.cfg.people:
+                for k, b in buckets.items():
                     if b.kind != "fixed":
                         continue
                     amt = report.plan_amount(self.conn, month, p, k)
@@ -515,6 +515,9 @@ class Ledger:
         if b is None or b.kind != "fixed":
             raise LedgerError(f"{bucket!r} is not a fixed bill "
                               f"({', '.join(k for k, x in self.cfg.buckets.items() if x.kind == 'fixed')})")
+        month = month or month_key(self.today())
+        if not b.active(month):
+            raise LedgerError(f"{b.label} only runs in {', '.join(b.months)}")
         month = self.ensure_month(month)
         row = self.conn.execute("SELECT * FROM fixed_payments WHERE month=? AND person=? AND bucket=?",
                                 (month, p, b.key)).fetchone()
@@ -525,8 +528,11 @@ class Ledger:
         with self._tx():
             self.conn.execute("UPDATE fixed_payments SET paid_at=? WHERE month=? AND person=? AND bucket=?",
                               (stamp, month, p, b.key))
-        return {"month": month, "person": p, "bucket": b.key, "amount": row["amount_sen"],
-                "already_paid": False, "paid_at": stamp}
+        out = {"month": month, "person": p, "bucket": b.key, "amount": row["amount_sen"],
+               "already_paid": False, "paid_at": stamp}
+        if b.months:
+            out["installment"] = report.installment(self.conn, b, p)
+        return out
 
     def fixed_due(self, month: str | None = None) -> list[dict]:
         month = self.ensure_month(month)

@@ -47,6 +47,17 @@ def plan_amount(conn: sqlite3.Connection, month: str, person: str, bucket: str) 
     return row[0] if row else 0
 
 
+def installment(conn: sqlite3.Connection, b, person: str) -> dict:
+    """Progress of an installment over all its months: how many paid, how much of the total."""
+    rows = {r["month"]: r for r in conn.execute(
+        "SELECT month, amount_sen, paid_at FROM fixed_payments WHERE person=? AND bucket=?", (person, b.key))}
+    amounts = {m: rows[m]["amount_sen"] if m in rows else b.amount_sen for m in b.months}
+    done = [m for m in b.months if m in rows and rows[m]["paid_at"]]
+    total, paid = sum(amounts.values()), sum(amounts[m] for m in done)
+    return {"months": list(b.months), "paid_months": done, "count": len(b.months), "done": len(done),
+            "total": total, "spent": paid, "left": total - paid}
+
+
 def bucket_status(conn: sqlite3.Connection, cfg: Config, month: str, person: str, bucket_key: str,
                   today: date) -> dict:
     b = cfg.buckets[bucket_key]
@@ -57,8 +68,11 @@ def bucket_status(conn: sqlite3.Connection, cfg: Config, month: str, person: str
         row = conn.execute("SELECT paid_at, auto FROM fixed_payments WHERE month=? AND person=? AND bucket=?",
                            (month, person, bucket_key)).fetchone()
         paid = bool(row and row["paid_at"])
-        return {"bucket": bucket_key, "label": b.label, "kind": b.kind, "amount": cap,
-                "paid": paid, "auto": bool(row and row["auto"]), "status": "paid" if paid else "due"}
+        out = {"bucket": bucket_key, "label": b.label, "kind": b.kind, "amount": cap,
+               "paid": paid, "auto": bool(row and row["auto"]), "status": "paid" if paid else "due"}
+        if b.months:
+            out["installment"] = installment(conn, b, person)
+        return out
 
     if b.kind == "weekly":
         return _weekly_status(conn, cfg, month, person, b, cap, today)
@@ -201,7 +215,7 @@ def status(conn: sqlite3.Connection, cfg: Config, month: str, today: date) -> di
     first, last = month_bounds(month)
     people = {}
     for p in cfg.people:
-        buckets = {k: bucket_status(conn, cfg, month, p, k, today) for k in cfg.buckets}
+        buckets = {k: bucket_status(conn, cfg, month, p, k, today) for k in cfg.buckets_in(month)}
         goals = [b for b in buckets.values() if b["kind"] != "fixed"]
         fixed = [b for b in buckets.values() if b["kind"] == "fixed"]
         unsorted = spent(conn, p, None, first, last)
@@ -219,12 +233,18 @@ def status(conn: sqlite3.Connection, cfg: Config, month: str, today: date) -> di
         }
 
     combined_buckets = {}
-    for k, b in cfg.buckets.items():
+    for k, b in cfg.buckets_in(month).items():
         rows = [people[p]["buckets"][k] for p in people]
         if b.kind == "fixed":
             combined_buckets[k] = {"bucket": k, "label": b.label, "kind": b.kind,
                                    "amount": sum(r["amount"] for r in rows),
                                    "paid": sum(1 for r in rows if r["paid"]), "count": len(rows)}
+            if b.months:
+                parts = [r["installment"] for r in rows]
+                combined_buckets[k]["installment"] = {
+                    "count": sum(i["count"] for i in parts), "done": sum(i["done"] for i in parts),
+                    "total": sum(i["total"] for i in parts), "spent": sum(i["spent"] for i in parts),
+                    "left": sum(i["left"] for i in parts)}
         else:
             cap, used = sum(r["cap"] for r in rows), sum(r["spent"] for r in rows)
             combined_buckets[k] = {"bucket": k, "label": b.label, "kind": b.kind, "cap": cap, "spent": used,

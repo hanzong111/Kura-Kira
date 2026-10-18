@@ -130,7 +130,12 @@ def fixed_reply(cfg: Config, r: dict) -> str:
     month = date.fromisoformat(r["month"] + "-01").strftime("%B")
     if r["already_paid"]:
         return f"{label} is already marked paid for {month}."
-    return f"✅ {label} {fmt(r['amount'], cfg.currency)} · {_name(cfg, r['person'])} · Paid for {month}"
+    line = f"✅ {label} {fmt(r['amount'], cfg.currency)} · {_name(cfg, r['person'])} · Paid for {month}"
+    i = r.get("installment")
+    if i:
+        line += (f" ({i['done']} of {i['count']} paid, " +
+                 (f"{fmt(i['left'], cfg.currency)} to go)" if i["left"] else "all done 🎉)"))
+    return line
 
 
 def balance_line(cfg: Config, bal: dict) -> str:

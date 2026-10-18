@@ -124,7 +124,8 @@ class App:
                 "day": min(max((today - first).days + 1, 0), last.day), "days": last.day,
                 "months": self.months(ledger),
                 "people_order": list(cfg.people),
-                "bucket_order": [{"key": k, "label": b.label, "kind": b.kind} for k, b in cfg.buckets.items()],
+                "bucket_order": [{"key": k, "label": b.label, "kind": b.kind}
+                                 for k, b in cfg.buckets_in(month).items()],
                 "categories": list(cfg.categories),
             })
             return add_fmt(st, cfg.currency)

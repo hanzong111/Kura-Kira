@@ -21,7 +21,9 @@ telegram_id = 0
 #             (RM20 x Mon-Fri = RM100; Thu-Fri = RM40). Under/overspend carries into the next week; resets monthly.
 #   monthly - plain monthly cap. shared = true: every spend is split evenly between you, whoever paid
 #             (unless the message says whose it is, e.g. "grocery for Vanisa")
-#   fixed   - paid upfront, shown as Paid / Due (no status bar)
+#   fixed   - paid upfront, shown as Paid / Due (no status bar). An installment adds
+#             months = ["2026-09", "2026-10", "2026-11"]: it only exists in those months and gets a
+#             "paid so far" bar.
 # For weekly buckets, `days` says which weekdays count (0 = Monday ... 6 = Sunday).
 
 [buckets.weekday]

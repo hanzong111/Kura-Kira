@@ -38,7 +38,7 @@ def due_text(led: Ledger, today: date) -> str | None:
     for r in rows:
         lines.append(f"@{led.cfg.people[r['person']].name} {led.cfg.buckets[r['bucket']].label} "
                      f"{fmt(r['amount_sen'], c)}")
-    lines.append("Reply \"house paid\" / \"car paid\" when done.")
+    lines.append("Reply " + " / ".join(f'"{k} paid"' for k in dict.fromkeys(r["bucket"] for r in rows)) + " when done.")
     return "\n".join(lines)
 
 
