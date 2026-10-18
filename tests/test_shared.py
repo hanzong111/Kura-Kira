@@ -75,3 +75,13 @@ def test_migration_marks_old_splits_as_said(tmp_path):
     conn = db.connect(path)
     assert [tuple(r) for r in conn.execute("SELECT id, shares_given FROM entries ORDER BY id")] == [(1, 0), (2, 1)]
     assert conn.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0] == "2"
+
+
+def test_advance_shows_as_transfer_and_moves_balance_only(ledger):
+    ledger.settle(from_person="hanz", to_person="vanisa", amount=400, on="2026-10-01", raw_text="upfront")
+    ledger.log_spend(sender="vanisa", place="Lotus's", total=100, bucket="grocery")
+    st = ledger.status()
+    assert st["paid"]["transfers"] == [{"on": "2026-10-01", "from": "hanz", "to": "vanisa", "amount": 40000,
+                                        "note": "upfront"}]
+    assert st["balance"]["owes"] == {"from": "vanisa", "to": "hanz", "amount": 35000}   # 400 - half of 100
+    assert st["people"]["hanz"]["buckets"]["grocery"]["spent"] == 5000

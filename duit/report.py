@@ -147,7 +147,8 @@ def balance(conn: sqlite3.Connection, cfg: Config) -> dict:
 
 def paid_totals(conn: sqlite3.Connection, cfg: Config, month: str) -> dict:
     """What each person actually paid out this month (spends + fixed bills), and what's unknown.
-    `rows` breaks it down by bucket (config order, "unsorted" last): who paid for what."""
+    `rows` breaks it down by bucket (config order, "unsorted" last): who paid for what. `transfers` is money
+    handed from one to the other this month (settle-ups, advances): it moves the balance, never a budget."""
     first, last = month_bounds(month)
     rng = (first.isoformat(), last.isoformat())
     out = {p: {"spends": 0, "fixed": 0} for p in cfg.people}
@@ -176,7 +177,11 @@ def paid_totals(conn: sqlite3.Connection, cfg: Config, month: str) -> dict:
     order = [*cfg.buckets, "unsorted"]
     rows = [{"bucket": k, "people": {p: {"amount": by[k][p]} for p in cfg.people},
              "total": sum(by[k].values())} for k in order if k in by]
-    return {"people": out, "unknown": unknown, "rows": rows}
+    transfers = [{"on": s["settled_on"], "from": s["from_person"], "to": s["to_person"], "amount": s["amount_sen"],
+                  "note": s["raw_text"] or ""}
+                 for s in conn.execute("SELECT * FROM settlements WHERE deleted_at IS NULL AND settled_on BETWEEN ? AND ? "
+                                       "ORDER BY settled_on, id", rng)]
+    return {"people": out, "unknown": unknown, "rows": rows, "transfers": transfers}
 
 
 def pending(conn: sqlite3.Connection) -> list[dict]:

@@ -140,3 +140,5 @@ strong, b, h3, .du-section-label, .du-month-total, .du-budget-label strong, .du-
   .kk-paid-table th, .kk-paid-table td { padding: 6px 4px; white-space: nowrap; }
   .kk-paid-table th .du-icon { display: none; }
 }
+.kk-transfers { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 15px; }
+.kk-transfers .du-badge { gap: 6px; }

@@ -56,6 +56,8 @@ def test_status_cards(base):
     assert st["combined"]["goals"]["cap_fmt"] == "RM5,300.00"  # Oct: 4.4 weekday + 4.5 weekend targets
     assert st["balance"]["owes"] == {"from": "vanisa", "to": "hanz", "amount": 1940, "amount_fmt": "RM19.40"}
     assert st["paid"]["unknown_fmt"] == "RM69.70"
+    assert [(t["on"], t["from"], t["to"], t["amount_fmt"]) for t in st["paid"]["transfers"]] == [
+        ("2026-10-06", "vanisa", "hanz", "RM40.00")]
     rows = {r["bucket"]: r for r in st["paid"]["rows"]}
     assert rows["toll"]["people"]["hanz"]["amount_fmt"] == "RM53.00" and rows["toll"]["people"]["vanisa"]["amount"] == 0
     for k in st["people_order"]:  # the breakdown adds up to each person's total

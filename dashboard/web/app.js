@@ -154,6 +154,9 @@ function renderPaid() {
   const totals = `<tr class="kk-paid-total"><th scope="row">Total</th>${order.map((k) =>
     `<td><span class="du-number">${esc(pd.people[k].total_fmt)}</span></td>`).join("")}</tr>`;
   const unknown = pd.unknown ? `<p class="kk-muted">Payer not known yet: <b class="du-number">${esc(pd.unknown_fmt)}</b></p>` : "";
+  const transfers = pd.transfers.length ? `<div class="kk-transfers"><strong>Money handed over:</strong>${pd.transfers.map((t) =>
+    `<span class="du-badge">${icon("swap")}${esc(name(t.from))} → ${esc(name(t.to))} <b class="du-number">${esc(t.amount_fmt)}</b>
+      <span class="kk-muted">${esc(shortDate(t.on))}${t.note ? ` · ${esc(t.note)}` : ""}</span></span>`).join("")}</div>` : "";
   const owes = status.balance.owes;
   $("whopaid").innerHTML = `
     <header class="du-panel-title"><h2 id="paid-title">${icon("coin-stack")} WHO PAID</h2></header>
@@ -164,7 +167,7 @@ function renderPaid() {
         <thead><tr><th scope="col">For</th>${order.map((k) => `<th scope="col">${esc(name(k))}</th>`).join("")}</tr></thead>
         <tbody>${rows || `<tr><td colspan="${order.length + 1}" class="kk-muted">Nothing paid yet this month.</td></tr>`}${totals}</tbody>
       </table>
-      ${unknown}
+      ${unknown}${transfers}
       <span class="du-badge du-settle">${icon("swap")}${owes
         ? `${esc(name(owes.from))} owes ${esc(name(owes.to))} <span class="du-number">${esc(owes.amount_fmt)}</span>`
         : "All square"}</span>
