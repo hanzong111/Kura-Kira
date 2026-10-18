@@ -313,9 +313,48 @@ class Tools:
             return total, {for_person: total}
         return total, {sender: total}
 
+    def _fixed_bill(self, a: dict):
+        """A fixed bill (house, car, an installment) sent as a spend: named as the bucket, or the place/item is
+        the bill's whole name ("mopping machine", "house"; not "car wash")."""
+        named = (a.get("bucket") or "").strip().lower()
+        for b in self.cfg.buckets.values():
+            if b.kind == "fixed" and named in (b.key, b.label.lower()):
+                return b
+        return self.cfg.fixed_bill_named(a.get("place")) or self.cfg.fixed_bill_named(a.get("item"))
+
+    def _pay_bill_instead(self, bill, a: dict, ctx: Context, person: str) -> dict:
+        """Bills are never spends (they'd eat the weekday/weekend budget): mark the bill paid instead."""
+        if a.get("amount") not in (None, ""):
+            self._verify(ctx, {"total": self._sen(a["amount"], "amount")})
+        r = self.led.pay_fixed(person, bill.key, a.get("month") or month_key(self._sent_day(ctx)))
+        line = replies.fixed_reply(self.cfg, r)
+        if a.get("amount") not in (None, "") and self._sen(a["amount"], "amount") != r["amount"]:
+            line += f" (the bill is set at {fmt(r['amount'], self.cfg.currency)})"
+        return {"reply": line, "question": None, "fixed": bill.key}
+
+    def _keep_out_of_daily(self, bucket: str | None, a: dict) -> str | None:
+        """Chu Chu / toiletries never count as weekday/weekend, whatever the model said: the category, the
+        places the couple taught the bot or the catalogue overrule a 'daily' guess."""
+        weekly = {k for k, b in self.cfg.buckets.items() if b.kind == "weekly"} | {DAILY}
+        if bucket not in weekly:
+            return bucket
+        hints = [CATEGORY_BUCKET.get((a.get("category") or "").strip().lower())]
+        learned = self.led.lookup_place(a.get("place", ""))
+        hints.append(learned["bucket"] if learned else None)
+        for text in (a.get("place"), a.get("item")):
+            m = catalogue.lookup(text or "")
+            hints.append(m.bucket if m else None)
+        return next((h for h in hints if h in self.cfg.keep_out_of_daily), bucket)
+
     def _classify(self, a: dict) -> tuple[str | None, str | None, str]:
         """(bucket, category, source). Order: the model's sure bucket > places the couple taught the bot >
-        the merchant catalogue > ask (the model was unsure) > the category's usual bucket."""
+        the merchant catalogue > ask (the model was unsure) > the category's usual bucket. Buckets in
+        rules.keep_out_of_daily (Chu Chu) are never left as weekday/weekend."""
+        bucket, category, source = self._classify_raw(a)
+        kept = self._keep_out_of_daily(bucket, a)
+        return (kept, category, "kept-out") if kept != bucket else (bucket, category, source)
+
+    def _classify_raw(self, a: dict) -> tuple[str | None, str | None, str]:
         category = a.get("category") or None
         if a.get("bucket"):
             return a["bucket"], category, "model"
@@ -361,6 +400,9 @@ class Tools:
         if ctx.msg_id:
             msg_id = ctx.msg_id if part == 1 else f"{ctx.msg_id}:{part}"
         payer = self._person(a.get("paid_by"), ctx)
+        bill = self._fixed_bill(a)
+        if bill:
+            return self._pay_bill_instead(bill, a, ctx, payer if payer not in (None, "each") else sender)
         # a plain spend belongs to whoever paid it ("Vanisa paid RM70 sushi" is Vanisa's, whoever types it);
         # only a split / shares / for_person says otherwise. Shared buckets (grocery, Chu Chu, petrol, toll) are
         # split evenly by the ledger, whoever paid.

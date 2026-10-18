@@ -37,7 +37,8 @@ message, and when, is filled in by the system.
      - `parents`: money given to their parents
      - `extra`: only when the message says "extra", or they pick Extra when asked
      - `daily`: everything else day to day: food, drinks, Grab, movies, sport, shopping
-     - House and car rent/loan, and installments (mopping machine), are fixed bills → `duit_pay_fixed`, never a spend.
+     - House and car rent/loan, and installments (mopping machine), are fixed bills → `duit_pay_fixed`, never a spend
+       (code turns a bill sent to `duit_log_spend` into "paid" anyway). Chu Chu / toiletries are never weekday/weekend.
      - **Not sure** (could be two buckets: "decathlon 120", "watsons 75" with no item, "shell 45")
        → omit `bucket`, set `bucket_options` to the 2-3 likely keys. Never guess.
    - `category`: Food, Groceries, Leisure, Sport, Transport, Housing, Bills, Shopping, Health, Toiletries,

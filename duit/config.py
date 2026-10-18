@@ -34,6 +34,12 @@ class Bucket:
     auto_paid: tuple[str, ...] = ()
     shared: bool = False  # borne half each, whoever paid (unless the message says whose it is)
     months: tuple[str, ...] = ()  # fixed bills only: the months it runs (an installment); empty = every month
+    aliases: tuple[str, ...] = ()  # other whole names for it in chat ("rent", "mop")
+
+    def named(self, text: str) -> bool:
+        """`text` is this bucket's key, label or an alias, as the whole name (punctuation/case ignored)."""
+        t = _squash(text)
+        return bool(t) and t in {_squash(n) for n in (self.key, self.label, *self.aliases)}
 
     def active(self, month: str) -> bool:
         return not self.months or month in self.months
@@ -51,6 +57,10 @@ class Config:
     tracking_start: date | None = None  # when tracking began (weekly budgets only)
     telegram_chat_id: str = ""           # the group scheduled messages are posted to
     before_start: str = "ignore"         # pre-start days: "ignore" (prorate from start) or "maxed" (on budget)
+    keep_out_of_daily: tuple[str, ...] = ()  # buckets whose spends never count as weekday/weekend
+
+    def fixed_bill_named(self, text: str | None) -> Bucket | None:
+        return next((b for b in self.buckets.values() if b.kind == "fixed" and text and b.named(text)), None)
 
     @property
     def tz(self) -> ZoneInfo:
@@ -100,7 +110,8 @@ def parse(data: dict) -> Config:
             if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", m):
                 raise ValueError(f"bucket {k}: month must be YYYY-MM, got {m!r}")
         buckets[k] = Bucket(k, v.get("label", k.title()), kind, parse_amount(v["amount"]),
-                            tuple(v.get("days", ())), auto, shared, tuple(sorted(months)))
+                            tuple(v.get("days", ())), auto, shared, tuple(sorted(months)),
+                            tuple(str(a) for a in v.get("aliases", ())))
     covered = sorted(d for b in buckets.values() if b.kind == "weekly" for d in b.days)
     if covered and covered != sorted(set(covered)):
         raise ValueError("weekly buckets overlap on some weekday")
@@ -116,7 +127,19 @@ def parse(data: dict) -> Config:
         tracking_start=_date(rules.get("tracking_start")),
         telegram_chat_id=str(data.get("telegram", {}).get("chat_id", "") or ""),
         before_start=_before_start(rules.get("before_start", "ignore")),
+        keep_out_of_daily=_keep_out(rules.get("keep_out_of_daily", ()), buckets),
     )
+
+
+def _keep_out(keys, buckets: dict[str, Bucket]) -> tuple[str, ...]:
+    for k in keys:
+        if k not in buckets or buckets[k].kind != "monthly":
+            raise ValueError(f"rules.keep_out_of_daily: {k!r} is not a monthly bucket")
+    return tuple(keys)
+
+
+def _squash(s: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", s.lower())
 
 
 def _before_start(v: str) -> str:

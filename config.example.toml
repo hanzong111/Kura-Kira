@@ -77,14 +77,17 @@ label = "House"
 kind = "fixed"
 amount = 1000
 auto_paid = ["vanisa"]   # marked Paid automatically each month; others start Due
+aliases = ["rent", "house rent", "house loan"]
 
 [buckets.car]
 label = "Car"
 kind = "fixed"
 amount = 300
 auto_paid = ["vanisa"]
+aliases = ["car loan", "car installment"]
 
 [rules]
+keep_out_of_daily = ["chuchu"]   # never counted as weekday/weekend, whatever the model says
 alert_at = [0.8, 1.0]          # warn when a person's bucket crosses these fractions
 ask_extra_over = 100           # a daily spend share above this -> ask "weekday/weekend or Extra?"
 # tracking_start = "2026-11-01"  # optional: when tracking began
