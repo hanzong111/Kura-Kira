@@ -127,7 +127,7 @@ expect = { kind = "spend", amount = 50, bucket = "toll" }
 id = "parents"
 sender = "vanisa"
 text = "parents 500"
-expect = { kind = "spend", amount = 500, bucket = "parents", category = "Family" }
+expect = { kind = "fixed", person = "vanisa", bills = ["parents"] }
 
 [[case]]
 id = "explicit-extra"

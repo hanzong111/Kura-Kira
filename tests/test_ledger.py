@@ -156,13 +156,14 @@ def test_fixed_bills_vanisa_auto_paid_hanz_due(ledger):
     v, h = st["people"]["vanisa"]["buckets"], st["people"]["hanz"]["buckets"]
     assert v["house"]["status"] == v["car"]["status"] == "paid"
     assert h["house"]["status"] == h["car"]["status"] == "due"
-    assert {(r["person"], r["bucket"]) for r in ledger.fixed_due()} == {("hanz", "house"), ("hanz", "car")}
+    assert {(r["person"], r["bucket"]) for r in ledger.fixed_due()} == {("hanz", "house"), ("hanz", "car"),
+                                                                        ("hanz", "parents"), ("vanisa", "parents")}
     r = ledger.pay_fixed("Hanz", "house")
     assert r["already_paid"] is False and r["amount"] == 100000
     assert ledger.pay_fixed("hanz", "House")["already_paid"] is True
     st = ledger.status()
     assert st["people"]["hanz"]["buckets"]["house"]["status"] == "paid"
-    assert st["combined"]["fixed"] == {"paid": 3, "count": 4}
+    assert st["combined"]["fixed"] == {"paid": 3, "count": 6}
     assert st["paid"]["people"]["hanz"]["fixed"] == 100000
     assert st["paid"]["people"]["vanisa"]["fixed"] == 130000
 
@@ -182,10 +183,11 @@ def test_plan_totals_match_the_agreed_plan(ledger):
         b = st["people"][p]["buckets"]
         assert (b["weekday"]["target"], b["weekday"]["cap"]) == (10000, 44000)
         assert (b["weekend"]["target"], b["weekend"]["cap"]) == (20000, 90000)
-        assert st["people"][p]["goals"]["cap"] == 44000 + 90000 + 30000 + 20000 + 6000 + 20000 + 5000 + 50000
-        assert st["people"][p]["fixed"]["total"] == 130000
-    assert st["combined"]["goals"]["cap"] == 2 * 265000
-    assert st["combined"]["outflow_plan"] == 2 * (265000 + 130000)
+        g = st["people"][p]["goals"]
+        assert g["variable_cap"] == 44000 + 90000 + 30000 + 20000 + 6000 + 20000 + 5000
+        assert g["fixed"] == st["people"][p]["fixed"]["total"] == 50000 + 100000 + 30000   # parents, house, car
+        assert g["cap"] == g["variable_cap"] + g["fixed"] == 395000                      # the whole plan
+    assert st["combined"]["goals"]["cap"] == st["combined"]["outflow_plan"] == 2 * 395000
 
 
 def test_plan_change_copies_forward(ledger, clock):
@@ -263,7 +265,8 @@ def test_combined_is_sum_of_people(ledger):
     for k, b in st["combined"]["buckets"].items():
         if b["kind"] != "fixed":
             assert b["spent"] == sum(st["people"][p]["buckets"][k]["spent"] for p in st["people"])
-    assert st["combined"]["goals"]["spent"] == 3500
+    g = st["combined"]["goals"]
+    assert (g["variable_spent"], g["fixed_paid"], g["spent"]) == (3500, 130000, 133500)   # + Vanisa's house & car
 
 
 def test_list_entries_filters(ledger):

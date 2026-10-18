@@ -100,10 +100,16 @@ def test_no_text_means_no_check(tools):
 
 # ---- the model's missing bucket is filled by category ----------------------------------------------
 @pytest.mark.parametrize("category,bucket", [("Leisure", "weekend"), ("Food", "weekend"), ("Groceries", "grocery"),
-                                             ("Pet", "chuchu"), ("Toiletries", "chuchu"), ("Family", "parents")])
+                                             ("Pet", "chuchu"), ("Toiletries", "chuchu")])
 def test_category_fallback_bucket(tools, ledger, category, bucket):
     r = tools.call("duit_log_spend", {"place": "x", "amount": 44, "category": category}, msg("x 44"))
     assert ledger.entry(r["entry_id"])["bucket"] == bucket
+
+
+def test_parents_is_a_bill_not_a_spend(tools, ledger):
+    r = tools.call("duit_log_spend", {"place": "parents", "amount": 500, "category": "Family"}, msg("parents 500"))
+    assert r["reply"] == "✅ Parents RM500.00 · Hanz · Paid for October"
+    assert ledger.list_entries() == []
 
 
 def test_options_mean_ask_not_fallback(tools, ledger):

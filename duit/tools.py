@@ -322,6 +322,14 @@ class Tools:
                 return b
         return self.cfg.fixed_bill_named(a.get("place")) or self.cfg.fixed_bill_named(a.get("item"))
 
+    def _fixed_from_classify(self, a: dict):
+        """The place is known (learned / catalogue / category) as a fixed bill, e.g. "parents 500"."""
+        bucket, _, source = self._classify(a)
+        if source == "learned":
+            bucket = (self.led.lookup_place(a.get("place", "")) or {}).get("bucket")
+        b = self.cfg.buckets.get(bucket or "")
+        return b if b and b.kind == "fixed" else None
+
     def _pay_bill_instead(self, bill, a: dict, ctx: Context, person: str) -> dict:
         """Bills are never spends (they'd eat the weekday/weekend budget): mark the bill paid instead."""
         if a.get("amount") not in (None, ""):
@@ -400,7 +408,7 @@ class Tools:
         if ctx.msg_id:
             msg_id = ctx.msg_id if part == 1 else f"{ctx.msg_id}:{part}"
         payer = self._person(a.get("paid_by"), ctx)
-        bill = self._fixed_bill(a)
+        bill = self._fixed_bill(a) or self._fixed_from_classify(a)
         if bill:
             return self._pay_bill_instead(bill, a, ctx, payer if payer not in (None, "each") else sender)
         # a plain spend belongs to whoever paid it ("Vanisa paid RM70 sushi" is Vanisa's, whoever types it);

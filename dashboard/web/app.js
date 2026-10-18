@@ -142,7 +142,7 @@ function renderCombined() {
           <strong class="du-number">${esc(g.spent_fmt)} / ${esc(g.cap_fmt)} spent${p == null ? "" : ` (${p}%)`}</strong>${legend}
         </div>
         <button type="button" class="kk-hit kk-hero" data-person="" data-bucket="" title="Show all spends">
-          ${meter(g, { label: "Combined monthly goals", hero: true, pace: el, paceLabel: `Month ${Math.round(el * 100)}%` })}
+          ${meter(g, { label: "Combined monthly plan", hero: true, pace: g.pace, paceLabel: `Month ${Math.round(el * 100)}%` })}
         </button>
       </div>
     </div>
@@ -230,7 +230,7 @@ function renderPerson(key, i) {
       <div>
         <div class="du-month-total"><h3>This month</h3><span class="du-number">${esc(g.spent_fmt)} / ${esc(g.cap_fmt)}</span></div>
         <button type="button" class="kk-hit kk-hero" data-person="${esc(key)}" data-bucket="" title="Show ${esc(p.name)}'s spends">
-          ${meter(g, { label: `${p.name} monthly goals`, pace: el })}</button>
+          ${meter(g, { label: `${p.name} monthly plan`, pace: g.pace })}</button>
         <div class="du-mini-buckets">${mini}</div>
       </div>
     </div>

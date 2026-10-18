@@ -53,7 +53,8 @@ def test_status_cards(base):
     assert (week["target_fmt"], week["carry_fmt"], week["allowance_fmt"]) == ("RM200.00", "-RM81.00", "RM119.00")
     assert (hanz["buckets"]["house"]["status"], hanz["buckets"]["car"]["status"]) == ("paid", "due")
     assert vanisa["buckets"]["car"]["paid"] and vanisa["unsorted_fmt"] == "RM75.00"
-    assert st["combined"]["goals"]["cap_fmt"] == "RM5,300.00"  # Oct: 4.4 weekday + 4.5 weekend targets
+    # Oct plan per person: weekday 440 + weekend 900 + monthly 830 + bills (parents 500, house 1000, car 300)
+    assert st["combined"]["goals"]["cap_fmt"] == "RM7,900.00"
     assert st["balance"]["owes"] == {"from": "vanisa", "to": "hanz", "amount": 1940, "amount_fmt": "RM19.40"}
     assert st["paid"]["unknown_fmt"] == "RM69.70"
     assert [(t["on"], t["from"], t["to"], t["amount_fmt"]) for t in st["paid"]["transfers"]] == [
@@ -78,7 +79,7 @@ def test_status_other_month_and_bad_month(base):
 def test_spends_filters(base):
     url, _ = base
     all_rows = get_json(f"{url}/api/spends?month=2026-10")
-    assert all_rows["count"] == 32 and all_rows["rows"][0]["spent_on"] == "2026-10-17"
+    assert all_rows["count"] == 30 and all_rows["rows"][0]["spent_on"] == "2026-10-17"
     zap = get_json(f"{url}/api/spends?q=zapfan&paid_by=hanz")
     split = next(r for r in zap["rows"] if r["split"])
     assert split["who"] == "Both" and split["split"] == "Hanz RM13.20 · Vanisa RM14.50"
@@ -105,7 +106,7 @@ def test_person_filter_shows_their_share(base):
 def test_top_places(base):
     url, _ = base
     top = get_json(f"{url}/api/spends")["top_places"]
-    assert top[0] == {"place": "Parents", "bucket": "parents", "count": 2, "total": 100000, "total_fmt": "RM1,000.00"}
+    assert top[0] == {"place": "Pavilion", "bucket": "weekend", "count": 1, "total": 38000, "total_fmt": "RM380.00"}
     sushi = next(p for p in top if p["place"] == "Sushi-Mentai")
     assert (sushi["count"], sushi["total"]) == (3, 21700)
 

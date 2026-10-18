@@ -12,26 +12,30 @@ def test_due_reminder_only_when_something_is_due(ledger):
                                      "@Hanz House RM1,000.00"]
     ledger.pay_fixed("hanz", "house", "2026-10")
     ledger.pay_fixed("hanz", "car", "2026-10")
+    assert "\n@Vanisa Parents RM500.00\n" in jobs.due_text(ledger, date(2026, 10, 5))
+    ledger.pay_fixed("hanz", "parents", "2026-10")
+    ledger.pay_fixed("vanisa", "parents", "2026-10")
     assert jobs.due_text(ledger, date(2026, 10, 5)) is None
 
 
 def test_weekly_recap(ledger):
     ledger.log_spend(sender="hanz", place="Zapfan", total=30, bucket="daily", spent_on="2026-10-14")
     ledger.log_spend(sender="hanz", place="Sushi Zanmai", total=230, bucket="daily", spent_on="2026-10-17")
-    ledger.log_spend(sender="vanisa", place="Parents", total=500, bucket="parents", spent_on="2026-10-16")
+    ledger.pay_fixed("vanisa", "parents", "2026-10")
     text = jobs.recap_text(ledger, date(2026, 10, 18))
     lines = text.splitlines()
     assert lines[0] == "📅 Week 12 Oct – 18 Oct"
     assert lines[1] == ("Hanz: Weekday RM30.00/RM100.00 (saved RM70.00) 🟩 · "
                         "Weekend RM230.00/RM200.00 (over RM30.00) 🟥")
-    assert "Top this week: Sushi Zanmai RM230.00, Zapfan RM30.00" in text      # parents isn't a place
-    assert "Vanisa Parents" not in text                                         # exactly on budget: no flag
+    assert "Top this week: Sushi Zanmai RM230.00, Zapfan RM30.00" in text
+    assert "Parents" not in text                                                # a bill, never a flag
 
 
 def test_month_report(ledger):
     ledger.log_spend(sender="vanisa", place="Watsons", total=74, bucket="chuchu", spent_on="2026-10-18")
     text = jobs.month_text(ledger, "2026-10")
-    assert text.startswith("🧾 October 2026 report card\nTogether: RM74.00 / RM5,300.00 → saved RM5,226.00 🟩")
+    assert text.startswith("🧾 October 2026 report card\nTogether: RM1,374.00 / RM7,900.00 · spending "
+                           "RM74.00 / RM4,300.00 → saved RM4,226.00 🟩")   # RM1,300 = Vanisa's house + car
     assert text.count("  Chu Chu / Toiletries: RM37.00/RM60.00 · RM23.00 left 🟩") == 2   # shared: half each
     assert text.endswith("Balance: Hanz owes Vanisa RM37.00")
 

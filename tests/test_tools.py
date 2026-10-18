@@ -111,6 +111,8 @@ def test_fixed_and_settle(tools):
     assert r["reply"].splitlines() == ["✅ House RM1,000.00 · Hanz · Paid for October",
                                        "✅ Car RM300.00 · Hanz · Paid for October"]
     assert "already marked paid" in tools.call("duit_pay_fixed", {"bills": ["house"]}, HANZ)["reply"]
+    tools.call("duit_pay_fixed", {"bills": ["parents"]}, HANZ)
+    tools.call("duit_pay_fixed", {"bills": ["parents"]}, VANISA)
     assert tools.call("duit_fixed_due", {}, HANZ)["reply"] == "All fixed bills paid ✓"
     tools.call("duit_log_spend", {"place": "Grab", "shares": {"vanisa": 25}, "paid_by": "hanz", "bucket": "daily"},
                ctx("hanz", 7))

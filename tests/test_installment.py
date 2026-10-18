@@ -20,7 +20,7 @@ def led(cfg, clock):
 def test_only_in_its_months(led):
     assert "mop" in led.status("2026-10")["people"]["hanz"]["buckets"]
     assert "mop" not in led.status("2026-12")["people"]["hanz"]["buckets"]
-    assert {r["bucket"] for r in led.fixed_due("2026-12")} == {"house", "car"}
+    assert {r["bucket"] for r in led.fixed_due("2026-12")} == {"house", "car", "parents"}
     with pytest.raises(LedgerError, match="only runs in"):
         led.pay_fixed("hanz", "mop", "2026-12")
 

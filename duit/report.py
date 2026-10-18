@@ -210,6 +210,17 @@ def pending(conn: sqlite3.Connection) -> list[dict]:
     return out
 
 
+def totals(var_cap: int, var_spent: int, fixed_cap: int, fixed_paid: int, elapsed: float) -> dict:
+    """The month's whole plan: spending targets + fixed bills (house, car, parents, installments).
+    spent = spending + bills paid. Status judges only the spending (bills can't overspend), and the pace mark
+    sits where you'd be with every bill paid plus spending on the calendar's pace."""
+    cap, used = var_cap + fixed_cap, var_spent + fixed_paid
+    st = OVER if var_spent > var_cap else pace_status(var_spent, var_cap, elapsed)
+    return {"cap": cap, "spent": used, "left": cap - used, "status": st,
+            "pace": round((fixed_cap + var_cap * elapsed) / cap, 4) if cap else elapsed,
+            "variable_cap": var_cap, "variable_spent": var_spent, "fixed": fixed_cap, "fixed_paid": fixed_paid}
+
+
 def status(conn: sqlite3.Connection, cfg: Config, month: str, today: date) -> dict:
     """Everything the dashboard and `how are we doing?` need, for one month."""
     first, last = month_bounds(month)
@@ -224,8 +235,8 @@ def status(conn: sqlite3.Connection, cfg: Config, month: str, today: date) -> di
         people[p] = {
             "name": cfg.people[p].name,
             "buckets": buckets,
-            "goals": {"cap": goal_cap, "spent": goal_spent, "left": goal_cap - goal_spent,
-                      "status": pace_status(goal_spent, goal_cap, month_elapsed(month, today))},
+            "goals": totals(goal_cap, goal_spent, sum(b["amount"] for b in fixed),
+                            sum(b["amount"] for b in fixed if b["paid"]), month_elapsed(month, today)),
             "unsorted": unsorted,
             "fixed": {"total": sum(b["amount"] for b in fixed),
                       "paid": sum(1 for b in fixed if b["paid"]), "count": len(fixed)},
@@ -250,8 +261,7 @@ def status(conn: sqlite3.Connection, cfg: Config, month: str, today: date) -> di
             combined_buckets[k] = {"bucket": k, "label": b.label, "kind": b.kind, "cap": cap, "spent": used,
                                    "left": cap - used,
                                    "status": pace_status(used, cap, month_elapsed(month, today))}
-    gcap = sum(people[p]["goals"]["cap"] for p in people)
-    gspent = sum(people[p]["goals"]["spent"] for p in people)
+    g = {k: sum(people[p]["goals"][k] for p in people) for k in ("variable_cap", "variable_spent", "fixed", "fixed_paid")}
     return {
         "month": month,
         "today": today.isoformat(),
@@ -260,8 +270,8 @@ def status(conn: sqlite3.Connection, cfg: Config, month: str, today: date) -> di
         "people": people,
         "combined": {
             "buckets": combined_buckets,
-            "goals": {"cap": gcap, "spent": gspent, "left": gcap - gspent,
-                      "status": pace_status(gspent, gcap, month_elapsed(month, today))},
+            "goals": totals(g["variable_cap"], g["variable_spent"], g["fixed"], g["fixed_paid"],
+                            month_elapsed(month, today)),
             "unsorted": sum(people[p]["unsorted"] for p in people),
             "fixed": {"paid": sum(people[p]["fixed"]["paid"] for p in people),
                       "count": sum(people[p]["fixed"]["count"] for p in people)},

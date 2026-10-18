@@ -26,12 +26,9 @@ SEPTEMBER = [
     ("2026-09-05", "hanz", "Sushi-Mentai", 48.90, "daily", "Food", {}),
     ("2026-09-12", "vanisa", "Jaya Grocer", 96.40, "grocery", "Groceries", {}),
     ("2026-09-19", "hanz", "Petronas", 70, "petrol", "Transport", {}),
-    ("2026-09-24", "vanisa", "Parents", 500, "parents", "Family", {}),
 ]
 
 OCTOBER = [
-    ("2026-10-01", "hanz", "Parents", 500, "parents", "Family", {"item": "monthly"}),
-    ("2026-10-01", "vanisa", "Parents", 500, "parents", "Family", {"item": "monthly"}),
     ("2026-10-01", "hanz", "Zapfan", 12.80, "daily", "Food", {"item": "lunch"}),
     ("2026-10-02", "vanisa", "Kopi Corner", 9.50, "daily", "Food", {"item": "breakfast"}),
     ("2026-10-03", "hanz", "Sushi-Mentai", {"hanz": 52, "vanisa": 52}, "daily", "Food", {"paid_by": "hanz"}),
@@ -85,6 +82,9 @@ def seed(path: Path, today: str = TODAY) -> Ledger:
                              **amount_kw, **extra)
     ledger.pay_fixed("hanz", "house", "2026-09")
     ledger.pay_fixed("hanz", "car", "2026-09")
+    ledger.pay_fixed("vanisa", "parents", "2026-09")
+    ledger.pay_fixed("hanz", "parents", "2026-10")
+    ledger.pay_fixed("vanisa", "parents", "2026-10")
     ledger.settle(from_person="vanisa", to_person="hanz", amount=40, on="2026-10-06")
     ledger.pay_fixed("hanz", "house", "2026-10")  # car stays Due
     return ledger
