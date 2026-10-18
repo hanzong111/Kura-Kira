@@ -5,6 +5,7 @@
     python -m duit backup             online backup to data/backups (keeps 30)
     python -m duit backfill FROM TO   on-budget placeholder spends for days before tracking
     python -m duit job NAME [--send]  scheduled message: due | recap | month | check
+    python -m duit reshare            re-apply who-bears-it rules (after changing `shared` buckets)
 """
 
 import json
@@ -69,6 +70,14 @@ def main(argv: list[str]) -> int:
             print("sent")
         else:
             print(text)
+    elif cmd == "reshare":
+        changed = led.reshare()
+        for c in changed:
+            print(f"#{c['id']} {c['place']}: {c['before']} -> {c['after']}")
+        if changed:
+            led.conn.execute("INSERT INTO audit(at, tool, args, result, ok) VALUES (?, 'cli_reshare', '{}', ?, 1)",
+                             (led.now().isoformat(timespec="seconds"), json.dumps(changed)))
+        print(f"{len(changed)} entries re-split")
     elif cmd == "json":
         print(json.dumps(led.status(argv[1] if len(argv) > 1 else None), indent=2))
     else:

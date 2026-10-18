@@ -19,7 +19,8 @@ telegram_id = 0
 # kind:
 #   weekly  - amount is per DAY (of the bucket's days). A week's target = amount x its days in the month
 #             (RM20 x Mon-Fri = RM100; Thu-Fri = RM40). Under/overspend carries into the next week; resets monthly.
-#   monthly - plain monthly cap
+#   monthly - plain monthly cap. shared = true: every spend is split evenly between you, whoever paid
+#             (unless the message says whose it is, e.g. "grocery for Vanisa")
 #   fixed   - paid upfront, shown as Paid / Due (no status bar)
 # For weekly buckets, `days` says which weekdays count (0 = Monday ... 6 = Sunday).
 
@@ -44,21 +45,25 @@ amount = 300
 label = "Grocery"
 kind = "monthly"
 amount = 200
+shared = true
 
 [buckets.chuchu]
 label = "Chu Chu / Toiletries"
 kind = "monthly"
 amount = 60
+shared = true
 
 [buckets.petrol]
 label = "Petrol"
 kind = "monthly"
 amount = 200
+shared = true
 
 [buckets.toll]
 label = "Toll"
 kind = "monthly"
 amount = 50
+shared = true
 
 [buckets.parents]
 label = "Parents"

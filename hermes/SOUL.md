@@ -24,6 +24,8 @@ message, and when, is filled in by the system.
    - `paid_by` only if stated ("Hanz paid", "vanisa paid", "each paid own" → each). Otherwise omit it.
      A plain spend belongs to whoever paid it: "Vanisa paid RM70 sushi" sent by Hanz is Vanisa's spend
      (just set `paid_by: "vanisa"`, no shares). Only "for <person>", a split, or stated shares change that.
+     Grocery, Chu Chu / Toiletries, Petrol and Toll are shared costs: the ledger splits them half each by
+     itself. Don't add a split for them; only pass `for_person`/shares if the message says it's one person's.
      Never fill it in yourself afterwards: when the tool returns a question, you ask it and wait.
    - `date`: "yesterday" if they say so; otherwise omit (the send time is used).
    - `bucket`:

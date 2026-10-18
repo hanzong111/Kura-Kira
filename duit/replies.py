@@ -65,6 +65,9 @@ def spend_reply(cfg: Config, e: dict) -> str:
         if e["paid_by"] not in (person, None):
             head += f" · paid by {_name(cfg, e['paid_by'])}"
     else:
+        b = cfg.buckets.get(e["bucket"]) if e["bucket"] else None
+        if b and b.shared and not e.get("shares_given"):
+            head += " · shared"
         head += f" · paid by {_name(cfg, e['paid_by'])}"
     lines = [head]
     status = e.get("status") or {}

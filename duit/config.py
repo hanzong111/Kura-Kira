@@ -31,6 +31,7 @@ class Bucket:
     amount_sen: int
     days: tuple[int, ...] = ()
     auto_paid: tuple[str, ...] = ()
+    shared: bool = False  # borne half each, whoever paid (unless the message says whose it is)
 
 
 @dataclass(frozen=True)
@@ -80,8 +81,11 @@ def parse(data: dict) -> Config:
         for p in auto:
             if p not in people:
                 raise ValueError(f"bucket {k}: auto_paid names unknown person {p!r}")
+        shared = bool(v.get("shared", False))
+        if shared and kind != "monthly":
+            raise ValueError(f"bucket {k}: only monthly buckets can be shared")
         buckets[k] = Bucket(k, v.get("label", k.title()), kind, parse_amount(v["amount"]),
-                            tuple(v.get("days", ())), auto)
+                            tuple(v.get("days", ())), auto, shared)
     covered = sorted(d for b in buckets.values() if b.kind == "weekly" for d in b.days)
     if covered and covered != sorted(set(covered)):
         raise ValueError("weekly buckets overlap on some weekday")

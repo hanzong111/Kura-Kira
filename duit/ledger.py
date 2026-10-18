@@ -135,6 +135,20 @@ class Ledger:
         total_sen = self._amount(total)
         return total_sen, {sender: total_sen}
 
+    def _borne(self, total_sen: int, share_map: dict[str, int], bucket_key: str | None, given: bool,
+               payer: str | None, sender: str) -> dict[str, int]:
+        """Whose cost it is, when the message didn't say: a shared bucket (grocery, Chu Chu, petrol, toll)
+        is split evenly between everyone whoever paid; anything else belongs to whoever paid."""
+        if given:
+            return share_map
+        if bucket_key and self.cfg.buckets[bucket_key].shared:
+            people = list(self.cfg.people)
+            return dict(zip(people, split_even(total_sen, len(people))))
+        if len(share_map) == 1:
+            return {next(iter(share_map)): total_sen}
+        # was split by the shared rule, now in a bucket that isn't shared
+        return {payer if payer in self.cfg.people else sender: total_sen}
+
     def _payer(self, paid_by: str | None, sender: str, shares: dict[str, int]) -> str | None:
         if paid_by is None:
             # only the sender involved -> the sender paid; anyone else involved -> ask
@@ -228,12 +242,14 @@ class Ledger:
     def log_spend(self, *, sender: str, place: str, total=None, shares: Mapping[str, object] | None = None,
                   paid_by: str | None = None, bucket: str | None = None, category: str | None = None,
                   item: str | None = None, spent_on: str | date | None = None, bucket_options: list[str] | None = None,
-                  raw_text: str | None = None, chat_id: str | None = None, msg_id: str | None = None) -> dict:
+                  raw_text: str | None = None, chat_id: str | None = None, msg_id: str | None = None,
+                  shares_given: bool | None = None) -> dict:
         """Record one spend message. Returns the entry plus what the reply should say.
 
         bucket: 'daily' (weekday/weekend by date), a bucket key, or None (unknown -> learned place,
         else Unsorted and the bot asks). paid_by: person, 'each', or None (sender if only the sender
-        is involved, else unknown and the bot asks).
+        is involved, else unknown and the bot asks). shares_given: the message said whose it is (a split,
+        stated shares, "for Vanisa"); otherwise shared buckets are split evenly. Defaults to bool(shares).
         """
         sender = self._person(sender)
         place = (place or "").strip()
@@ -260,16 +276,19 @@ class Ledger:
             category = learned["category"]
         bucket_key = self._bucket(bucket, day)
         category = self._category(category)
+        given = bool(shares) if shares_given is None else bool(shares_given)
+        share_map = self._borne(total_sen, share_map, bucket_key, given, payer, sender)
 
         month = self.ensure_month(month_key(day))
         before = self._snapshot(month, share_map, bucket_key, day)
         with self._tx():
             cur = self.conn.execute(
                 """INSERT INTO entries(created_at, spent_on, place, item, category, bucket, bucket_options,
-                                       total_sen, paid_by, sender, raw_text, chat_id, msg_id)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                                       total_sen, shares_given, paid_by, sender, raw_text, chat_id, msg_id)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (self._stamp(), day.isoformat(), place, item, category, bucket_key,
-                 json.dumps(bucket_options) if bucket_options else None, total_sen, payer, sender, raw_text,
+                 json.dumps(bucket_options) if bucket_options else None, total_sen, int(given), payer, sender,
+                 raw_text,
                  None if chat_id is None else str(chat_id), None if msg_id is None else str(msg_id)))
             entry_id = cur.lastrowid
             for p, amt in share_map.items():
@@ -349,23 +368,31 @@ class Ledger:
         new_bucket = self._bucket(bucket, day) if bucket is not None else e["bucket"]
         new_payer = self._payer(paid_by, e["sender"], e["shares"]) if paid_by is not None else e["paid_by"]
         new_cat = self._category(category) if category is not None else e["category"]
-        before = self._snapshot(month, e["shares"], new_bucket, day) if new_bucket != e["bucket"] else {}
+        share_map = self._borne(e["total_sen"], e["shares"], new_bucket, bool(e["shares_given"]), new_payer,
+                                e["sender"])
+        before = self._snapshot(month, share_map, new_bucket, day) if new_bucket != e["bucket"] else {}
         with self._tx():
             self.conn.execute("UPDATE entries SET bucket=?, paid_by=?, category=? WHERE id=?",
                               (new_bucket, new_payer, new_cat, entry_id))
+            if share_map != e["shares"]:
+                self._write_shares(entry_id, share_map)
             if learn and (bucket is not None or category is not None):
                 self.learn_place(e["place"], bucket, category)
         return self._result(entry_id, month, before, day)
 
     def edit(self, entry_id: int, *, place: str | None = None, item: str | None = None, total=None,
              shares: Mapping[str, object] | None = None, paid_by: str | None = None, bucket: str | None = None,
-             category: str | None = None, spent_on: str | date | None = None) -> dict:
+             category: str | None = None, spent_on: str | date | None = None,
+             shares_given: bool | None = None) -> dict:
+        """shares_given: the new shares were said in the message (None: True when shares are passed)."""
         e = self.entry(entry_id)
         if e["deleted_at"]:
             raise LedgerError(f"entry #{entry_id} was deleted")
         day = self._date(spent_on) if spent_on is not None else date.fromisoformat(e["spent_on"])
+        # once said in a message, whose it is stays said; otherwise the rule decides again below
+        given = bool(shares is not None if shares_given is None else shares_given) or bool(e["shares_given"])
         if shares is not None or total is not None:
-            if shares is None and len(e["shares"]) > 1:
+            if shares is None and len(e["shares"]) > 1 and given:
                 raise LedgerError(f"#{entry_id} is split between people — give the new shares, not just a total")
             if shares is None:
                 shares = {next(iter(e["shares"])): total}
@@ -382,20 +409,38 @@ class Ledger:
             bucket_key = self._bucket(DAILY, day)  # date moved: re-pick weekday/weekend
         else:
             bucket_key = e["bucket"]
+        share_map = self._borne(total_sen, share_map, bucket_key, given, payer, e["sender"])
         self.ensure_month(month_key(day))
         with self._tx():
             self.conn.execute(
-                """UPDATE entries SET place=?, item=?, total_sen=?, paid_by=?, bucket=?, category=?, spent_on=?
-                   WHERE id=?""",
-                ((place or e["place"]).strip(), item if item is not None else e["item"], total_sen, payer,
-                 bucket_key, self._category(category) if category is not None else e["category"],
+                """UPDATE entries SET place=?, item=?, total_sen=?, shares_given=?, paid_by=?, bucket=?, category=?,
+                   spent_on=? WHERE id=?""",
+                ((place or e["place"]).strip(), item if item is not None else e["item"], total_sen, int(given),
+                 payer, bucket_key, self._category(category) if category is not None else e["category"],
                  day.isoformat(), entry_id))
-            self.conn.execute("DELETE FROM shares WHERE entry_id=?", (entry_id,))
-            for p, amt in share_map.items():
-                self.conn.execute("INSERT INTO shares VALUES (?,?,?)", (entry_id, p, amt))
+            self._write_shares(entry_id, share_map)
             if bucket is not None or category is not None:
                 self.learn_place(place or e["place"], bucket, category)
         return self._result(entry_id, month_key(day), {}, day)
+
+    def _write_shares(self, entry_id: int, share_map: dict[str, int]) -> None:
+        self.conn.execute("DELETE FROM shares WHERE entry_id=?", (entry_id,))
+        for p, amt in share_map.items():
+            self.conn.execute("INSERT INTO shares VALUES (?,?,?)", (entry_id, p, amt))
+
+    def reshare(self) -> list[dict]:
+        """Re-apply the whose-cost rule to every entry whose shares weren't said in the message (after a
+        bucket becomes shared, or stops being shared). Returns what changed."""
+        changed = []
+        for row in self.conn.execute("SELECT id FROM entries WHERE deleted_at IS NULL AND shares_given = 0 "
+                                     "ORDER BY id").fetchall():
+            e = self.entry(row["id"])
+            new = self._borne(e["total_sen"], e["shares"], e["bucket"], False, e["paid_by"], e["sender"])
+            if new != e["shares"]:
+                with self._tx():
+                    self._write_shares(e["id"], new)
+                changed.append({"id": e["id"], "place": e["place"], "before": e["shares"], "after": new})
+        return changed
 
     def delete(self, entry_id: int) -> dict:
         e = self.entry(entry_id)

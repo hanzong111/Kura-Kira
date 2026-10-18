@@ -32,7 +32,8 @@ def test_month_report(ledger):
     ledger.log_spend(sender="vanisa", place="Watsons", total=74, bucket="chuchu", spent_on="2026-10-18")
     text = jobs.month_text(ledger, "2026-10")
     assert text.startswith("🧾 October 2026 report card\nTogether: RM74.00 / RM5,300.00 → saved RM5,226.00 🟩")
-    assert "  Chu Chu / Toiletries: RM74.00/RM60.00 · over by RM14.00 🟥" in text
+    assert text.count("  Chu Chu / Toiletries: RM37.00/RM60.00 · RM23.00 left 🟩") == 2   # shared: half each
+    assert text.endswith("Balance: Hanz owes Vanisa RM37.00")
 
 
 def test_month_job_reports_last_month_early_in_the_month(ledger):

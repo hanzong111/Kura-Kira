@@ -109,3 +109,34 @@ strong, b, h3, .du-section-label, .du-month-total, .du-budget-label strong, .du-
   .du-settle { font-size: 16px; }
   .du-paid-strip strong, .du-bills strong, .du-partner-footer strong { font-size: 16px; }
 }
+
+/* Who paid: money out of each pocket (the personal cards show what each person bears). */
+.kk-paid-body { padding: 12px; display: grid; gap: 12px; }
+.kk-paid-bar { display: flex; height: 26px; border: 3px solid var(--du-ink); background: var(--du-surface-light); }
+.kk-paid-seg { width: var(--w); background:
+    linear-gradient(rgba(255, 255, 255, .38) 0 3px, transparent 3px calc(100% - 3px), rgba(33, 27, 50, .22) calc(100% - 3px)),
+    var(--c); }
+.kk-paid-seg + .kk-paid-seg { border-left: 3px solid var(--du-ink); }
+.kk-paid-keys { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; font-size: 15px; }
+.kk-paid-key i { display: inline-block; width: 12px; height: 12px; margin-right: 4px; background: var(--c);
+  border: 2px solid var(--du-ink); vertical-align: -1px; }
+.kk-paid-table th, .kk-paid-table td { text-align: left; }
+.kk-paid-table td { text-align: right; }
+.kk-paid-table th .du-icon { margin-right: 6px; vertical-align: -3px; }
+.kk-paid-total th, .kk-paid-total td { border-top: 3px solid var(--du-ink); font-weight: 700; }
+.kk-whopaid .du-settle { justify-self: start; }
+@media (max-width: 767px) {
+  .kk-paid-body { padding: 10px; }
+  .kk-paid-keys { font-size: 16px; flex-direction: column; }
+  .kk-whopaid .du-settle { justify-self: stretch; }
+}
+.kk-paid-table { max-width: 720px; }
+.kk-paid-table tbody th { background: none; font-weight: 400; }
+.kk-paid-table th:not(:first-child) { text-align: right; }
+.kk-paid-body > * { min-width: 0; }
+.kk-paid-table { width: 100%; min-width: 0; }
+@media (max-width: 767px) {
+  .kk-paid-table { font-size: 14px; }
+  .kk-paid-table th, .kk-paid-table td { padding: 6px 4px; white-space: nowrap; }
+  .kk-paid-table th .du-icon { display: none; }
+}

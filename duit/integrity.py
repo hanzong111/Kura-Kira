@@ -29,6 +29,10 @@ def check(conn: sqlite3.Connection, cfg: Config) -> list[str]:
                 problems.append(f"{tag}: share for unknown person {s['person']!r}")
         if e["bucket"] is not None and e["bucket"] not in spend_buckets:
             problems.append(f"{tag}: unknown bucket {e['bucket']!r}")
+        elif e["bucket"] and cfg.buckets[e["bucket"]].shared and not e["shares_given"]:
+            amounts = {s["person"]: s["amount_sen"] for s in shares}
+            if set(amounts) != people or max(amounts.values()) - min(amounts.values()) > 1:
+                problems.append(f"{tag}: {e['bucket']} is shared but isn't split evenly between everyone")
         if e["paid_by"] is not None and e["paid_by"] not in people | {"each"}:
             problems.append(f"{tag}: unknown payer {e['paid_by']!r}")
         if e["sender"] not in people:

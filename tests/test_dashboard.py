@@ -44,8 +44,9 @@ def test_status_cards(base):
     assert st["months"] == ["2026-10", "2026-09"]
     hanz, vanisa = st["people"]["hanz"], st["people"]["vanisa"]
     toll = hanz["buckets"]["toll"]
-    assert (toll["spent"], toll["cap"], toll["status"]) == (5300, 5000, "over")
-    assert toll["left_fmt"] == "-RM3.00" and toll["cap_fmt"] == "RM50.00"
+    # Hanz paid both toll reloads (RM53), but toll is shared: half of it is Vanisa's cost
+    assert (toll["spent"], toll["cap"], toll["status"]) == (2650, 5000, "ok")
+    assert toll["left_fmt"] == "RM23.50" and toll["cap_fmt"] == "RM50.00"
     weekday = hanz["buckets"]["weekday"]
     assert (weekday["cap_fmt"], weekday["target_fmt"]) == ("RM440.00", "RM100.00")
     week = vanisa["buckets"]["weekend"]["week"]  # she overspent the 10-11 Oct weekend
@@ -53,8 +54,12 @@ def test_status_cards(base):
     assert (hanz["buckets"]["house"]["status"], hanz["buckets"]["car"]["status"]) == ("paid", "due")
     assert vanisa["buckets"]["car"]["paid"] and vanisa["unsorted_fmt"] == "RM75.00"
     assert st["combined"]["goals"]["cap_fmt"] == "RM5,300.00"  # Oct: 4.4 weekday + 4.5 weekend targets
-    assert st["balance"]["owes"] == {"from": "vanisa", "to": "hanz", "amount": 4510, "amount_fmt": "RM45.10"}
+    assert st["balance"]["owes"] == {"from": "vanisa", "to": "hanz", "amount": 1940, "amount_fmt": "RM19.40"}
     assert st["paid"]["unknown_fmt"] == "RM69.70"
+    rows = {r["bucket"]: r for r in st["paid"]["rows"]}
+    assert rows["toll"]["people"]["hanz"]["amount_fmt"] == "RM53.00" and rows["toll"]["people"]["vanisa"]["amount"] == 0
+    for k in st["people_order"]:  # the breakdown adds up to each person's total
+        assert sum(r["people"][k]["amount"] for r in st["paid"]["rows"]) == st["paid"]["people"][k]["total"]
     q = {p["place"]: p for p in st["pending"]}
     assert q["Nando's"]["needs"] == ["payer"] and q["Nando's"]["who"] == "Both"
     assert q["Watsons"]["options"] == ["Chu Chu / Toiletries", "Extra"]

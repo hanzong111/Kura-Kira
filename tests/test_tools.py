@@ -167,3 +167,14 @@ def test_bot_cannot_answer_its_own_question(tools):
         out = tools.call(name, args, VANISA)  # same message as the spend
         assert "don't answer it yourself" in out["error"]
     assert tools.call("duit_answer", {"entry_id": 1, "paid_by": "vanisa"}, ctx("vanisa", 99))["needs"] == []
+
+
+def test_shared_bucket_message_is_split_by_code(tools, ledger):
+    r = tools.call("duit_log_spend", {"place": "Lotus's", "amount": "100", "category": "Groceries"},
+                   Context(sender="hanz", chat_id="g", msg_id="70", text="lotus's grocery 100"))
+    e = ledger.entry(1)
+    assert e["bucket"] == "grocery" and e["shares"] == {"hanz": 5000, "vanisa": 5000} and e["paid_by"] == "hanz"
+    assert r["reply"].splitlines()[0] == "✅ #1 Lotus's · Grocery · RM100.00 · shared · paid by Hanz"
+    r = tools.call("duit_log_spend", {"place": "Watsons", "amount": "30", "bucket": "chuchu", "for_person": "vanisa"},
+                   Context(sender="hanz", chat_id="g", msg_id="71", text="watsons 30 for vanisa"))
+    assert ledger.entry(2)["shares"] == {"vanisa": 3000}

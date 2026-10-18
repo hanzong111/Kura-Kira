@@ -199,13 +199,13 @@ def test_plan_change_copies_forward(ledger, clock):
 
 
 def test_alerts_at_80_and_over(ledger):
-    a = ledger.log_spend(sender="vanisa", place="Petronas", total=150, bucket="petrol")
+    a = ledger.log_spend(sender="vanisa", place="Concert", total=230, bucket="extra")
     assert a["alerts"] == []
-    b = ledger.log_spend(sender="vanisa", place="Petronas", total=20, bucket="petrol")
-    assert [(x["threshold"], x["left"]) for x in b["alerts"]] == [(0.8, 3000)]
-    c = ledger.log_spend(sender="vanisa", place="Shell", total=40, bucket="petrol")
+    b = ledger.log_spend(sender="vanisa", place="Concert", total=20, bucket="extra")
+    assert [(x["threshold"], x["left"]) for x in b["alerts"]] == [(0.8, 5000)]
+    c = ledger.log_spend(sender="vanisa", place="Shopping", total=60, bucket="extra")
     assert [(x["threshold"], x["left"]) for x in c["alerts"]] == [(1.0, -1000)]
-    assert ledger.status()["people"]["vanisa"]["buckets"]["petrol"]["status"] == "over"
+    assert ledger.status()["people"]["vanisa"]["buckets"]["extra"]["status"] == "over"
 
 
 def test_weekly_alert_uses_this_weeks_allowance(ledger):

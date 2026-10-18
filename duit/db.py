@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .config import ROOT
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS entries (
     bucket          TEXT,                   -- budget bucket key, NULL = Unsorted
     bucket_options  TEXT,                   -- JSON list the bot offered when unsure
     total_sen       INTEGER NOT NULL CHECK (total_sen > 0),
+    shares_given    INTEGER NOT NULL DEFAULT 0, -- 1 = the message said whose it is; 0 = by rule (payer / shared bucket)
     paid_by         TEXT,                   -- person key, NULL = unknown
     sender          TEXT NOT NULL,          -- person key of whoever sent the message
     raw_text        TEXT,
@@ -118,5 +119,18 @@ def connect(path: str | os.PathLike | None = None) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA busy_timeout = 5000")  # bot and dashboard share the file
     conn.executescript(SCHEMA)
+    _migrate(conn)
     conn.execute("INSERT OR IGNORE INTO meta(key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
     return conn
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(entries)")}
+    if "shares_given" not in cols:
+        # v1 -> v2: before shared buckets existed, any entry split between people was split by the message
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute("ALTER TABLE entries ADD COLUMN shares_given INTEGER NOT NULL DEFAULT 0")
+        conn.execute("UPDATE entries SET shares_given = 1 WHERE id IN "
+                     "(SELECT entry_id FROM shares GROUP BY entry_id HAVING COUNT(*) > 1)")
+        conn.execute("UPDATE meta SET value = '2' WHERE key = 'schema_version'")
+        conn.execute("COMMIT")

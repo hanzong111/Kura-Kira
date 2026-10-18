@@ -146,26 +146,37 @@ def balance(conn: sqlite3.Connection, cfg: Config) -> dict:
 
 
 def paid_totals(conn: sqlite3.Connection, cfg: Config, month: str) -> dict:
-    """What each person actually paid out this month (spends + fixed bills), and what's unknown."""
+    """What each person actually paid out this month (spends + fixed bills), and what's unknown.
+    `rows` breaks it down by bucket (config order, "unsorted" last): who paid for what."""
     first, last = month_bounds(month)
     rng = (first.isoformat(), last.isoformat())
     out = {p: {"spends": 0, "fixed": 0} for p in cfg.people}
+    by: dict[str, dict[str, int]] = {}
     unknown = 0
-    for e in conn.execute("SELECT id, total_sen, paid_by FROM entries WHERE deleted_at IS NULL "
+
+    def add(person: str, bucket: str | None, sen: int, kind: str) -> None:
+        out[person][kind] += sen
+        row = by.setdefault(bucket or "unsorted", dict.fromkeys(cfg.people, 0))
+        row[person] += sen
+
+    for e in conn.execute("SELECT id, total_sen, paid_by, bucket FROM entries WHERE deleted_at IS NULL "
                           "AND spent_on BETWEEN ? AND ?", rng):
         if e["paid_by"] is None:
             unknown += e["total_sen"]
         elif e["paid_by"] == "each":
             for s in conn.execute("SELECT person, amount_sen FROM shares WHERE entry_id=?", (e["id"],)):
-                out[s["person"]]["spends"] += s["amount_sen"]
+                add(s["person"], e["bucket"], s["amount_sen"], "spends")
         else:
-            out[e["paid_by"]]["spends"] += e["total_sen"]
-    for f in conn.execute("SELECT person, amount_sen FROM fixed_payments WHERE month=? AND paid_at IS NOT NULL",
+            add(e["paid_by"], e["bucket"], e["total_sen"], "spends")
+    for f in conn.execute("SELECT person, bucket, amount_sen FROM fixed_payments WHERE month=? AND paid_at IS NOT NULL",
                           (month,)):
-        out[f["person"]]["fixed"] += f["amount_sen"]
+        add(f["person"], f["bucket"], f["amount_sen"], "fixed")
     for v in out.values():
         v["total"] = v["spends"] + v["fixed"]
-    return {"people": out, "unknown": unknown}
+    order = [*cfg.buckets, "unsorted"]
+    rows = [{"bucket": k, "people": {p: {"amount": by[k][p]} for p in cfg.people},
+             "total": sum(by[k].values())} for k in order if k in by]
+    return {"people": out, "unknown": unknown, "rows": rows}
 
 
 def pending(conn: sqlite3.Connection) -> list[dict]:

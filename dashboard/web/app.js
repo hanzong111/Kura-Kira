@@ -116,10 +116,6 @@ function renderCombined() {
     const [kind, text] = f.paid === f.count ? ["paid", "PAID"] : f.paid === 0 ? ["due", "DUE"] : ["partial", `${f.paid} of ${f.count} PAID`];
     return bill(b.label, BUCKET_ICON[b.key] || "receipt", kind, `${f.amount_fmt} · ${text}`);
   }).join("");
-  const paid = status.paid.people;
-  const who = status.people_order.map((k) => `<span>${esc(name(k))} paid <b class="du-number">${esc(paid[k].total_fmt)}</b></span>`).join("");
-  const unknown = status.paid.unknown ? `<span>payer unknown <b class="du-number">${esc(status.paid.unknown_fmt)}</b></span>` : "";
-  const owes = status.balance.owes;
   $("combined").innerHTML = `
     <div class="du-combined-head">
       <h2 id="combined-title" class="du-combined-heading">${icon("coin-stack", "du-icon du-icon--large")}COMBINED</h2>
@@ -135,11 +131,44 @@ function renderCombined() {
     <div class="du-buckets">${buckets}</div>
     <footer class="du-combined-footer">
       <div class="du-bills"><strong>Fixed bills:</strong>${bills}</div>
-      <div class="du-paid-strip"><strong>Who paid:</strong>${who}${unknown}</div>
+    </footer>`;
+}
+
+// ---- who paid ---------------------------------------------------------------------------------------
+// The personal cards show what each person bears (shared buckets split half each); this shows the money
+// that actually left each person's pocket, and what for.
+function renderPaid() {
+  const pd = status.paid, order = status.people_order;
+  const sum = order.reduce((n, k) => n + pd.people[k].total, 0);
+  const accent = (i) => (i === 0 ? "var(--du-hanz)" : "var(--du-vanisa)");
+  const segs = order.map((k, i) => {
+    const t = pd.people[k].total, w = sum ? (t / sum) * 100 : 100 / order.length;
+    return `<span class="kk-paid-seg" style="--w:${w.toFixed(2)}%;--c:${accent(i)}" title="${esc(name(k))} ${esc(pd.people[k].total_fmt)}"></span>`;
+  }).join("");
+  const keys = order.map((k, i) => `<span class="kk-paid-key"><i style="--c:${accent(i)}" aria-hidden="true"></i>
+    ${esc(name(k))} paid <b class="du-number">${esc(pd.people[k].total_fmt)}</b>${sum ? ` <span class="kk-muted">(${pct(pd.people[k].total, sum)}%)</span>` : ""}</span>`).join("");
+  const label = (k) => (k === "unsorted" ? "Unsorted" : status.bucket_order.find((b) => b.key === k)?.label ?? k);
+  const amt = (v) => (v.amount ? `<span class="du-number">${esc(v.amount_fmt)}</span>` : `<span class="kk-muted">–</span>`);
+  const rows = pd.rows.map((r) => `<tr><th scope="row">${icon(BUCKET_ICON[r.bucket] || "receipt")}${esc(label(r.bucket))}</th>
+    ${order.map((k) => `<td>${amt(r.people[k])}</td>`).join("")}</tr>`).join("");
+  const totals = `<tr class="kk-paid-total"><th scope="row">Total</th>${order.map((k) =>
+    `<td><span class="du-number">${esc(pd.people[k].total_fmt)}</span></td>`).join("")}</tr>`;
+  const unknown = pd.unknown ? `<p class="kk-muted">Payer not known yet: <b class="du-number">${esc(pd.unknown_fmt)}</b></p>` : "";
+  const owes = status.balance.owes;
+  $("whopaid").innerHTML = `
+    <header class="du-panel-title"><h2 id="paid-title">${icon("coin-stack")} WHO PAID</h2></header>
+    <div class="kk-paid-body">
+      <div class="kk-paid-bar" role="img" aria-label="${esc(order.map((k) => `${name(k)} paid ${pd.people[k].total_fmt}`).join(", "))}">${segs}</div>
+      <div class="kk-paid-keys">${keys}</div>
+      <table class="du-table kk-paid-table">
+        <thead><tr><th scope="col">For</th>${order.map((k) => `<th scope="col">${esc(name(k))}</th>`).join("")}</tr></thead>
+        <tbody>${rows || `<tr><td colspan="${order.length + 1}" class="kk-muted">Nothing paid yet this month.</td></tr>`}${totals}</tbody>
+      </table>
+      ${unknown}
       <span class="du-badge du-settle">${icon("swap")}${owes
         ? `${esc(name(owes.from))} owes ${esc(name(owes.to))} <span class="du-number">${esc(owes.amount_fmt)}</span>`
         : "All square"}</span>
-    </footer>`;
+    </div>`;
 }
 
 // ---- personal cards ---------------------------------------------------------------------------------
@@ -266,6 +295,7 @@ async function loadStatus() {
   renderHeader();
   renderCombined();
   $("partners").innerHTML = status.people_order.map(renderPerson).join("");
+  renderPaid();
   renderNeeds();
   fillFilterOptions();
 }

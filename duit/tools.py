@@ -361,9 +361,11 @@ class Tools:
             msg_id = ctx.msg_id if part == 1 else f"{ctx.msg_id}:{part}"
         payer = self._person(a.get("paid_by"), ctx)
         # a plain spend belongs to whoever paid it ("Vanisa paid RM70 sushi" is Vanisa's, whoever types it);
-        # only a split / shares / for_person says otherwise
+        # only a split / shares / for_person says otherwise. Shared buckets (grocery, Chu Chu, petrol, toll) are
+        # split evenly by the ledger, whoever paid.
         owner = payer if payer not in (None, "each") else sender
         total, shares = self._amounts(a, ctx, owner, required=True)
+        said = bool(a.get("shares") or a.get("split") or a.get("for_person"))
         bucket, category, _ = self._classify(a)
         e = self.led.log_spend(
             sender=sender, place=a.get("place", ""), total=None if total is None else _rm(total),
@@ -371,7 +373,7 @@ class Tools:
             bucket=bucket, category=category, item=a.get("item") or None,
             spent_on=self._day(a.get("date"), ctx), bucket_options=a.get("bucket_options") or None,
             raw_text=textcheck.strip_reply_quote(ctx.text) if ctx.text else None,
-            chat_id=ctx.chat_id or None, msg_id=msg_id)
+            chat_id=ctx.chat_id or None, msg_id=msg_id, shares_given=said)
         return self._spend_result(e)
 
     def answer(self, a: dict, ctx: Context) -> dict:
@@ -393,7 +395,8 @@ class Tools:
             self._not_own_question(entry_id, ctx)
         old = self.led.entry(entry_id)
         total, shares = self._amounts(a, ctx, old["sender"], required=False)
-        if shares is not None and not (a.get("shares") or a.get("split") or a.get("for_person")):
+        said = bool(a.get("shares") or a.get("split") or a.get("for_person"))
+        if shares is not None and not said:
             # "wrong, should be 30": same people, same proportions, new total
             shares = dict(zip(old["shares"], split_ratio(total, list(old["shares"].values()))))
         e = self.led.edit(entry_id, place=a.get("place"), item=a.get("item"),
@@ -401,7 +404,7 @@ class Tools:
                           shares=None if shares is None else {p: _rm(v) for p, v in shares.items()},
                           paid_by=self._person(a.get("paid_by"), ctx), bucket=a.get("bucket"),
                           category=a.get("category"),
-                          spent_on=self._day(a["date"], ctx) if a.get("date") else None)
+                          spent_on=self._day(a["date"], ctx) if a.get("date") else None, shares_given=said)
         r = self._spend_result(e)
         r["reply"] = "✏️ " + r["reply"].removeprefix("✅ ")
         return r
