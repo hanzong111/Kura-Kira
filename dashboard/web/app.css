@@ -192,3 +192,16 @@ body { line-height: 1.45; }
 }
 .kk-installment .du-budget-label { flex-wrap: wrap; row-gap: 2px; }
 .kk-installment .du-budget-value { white-space: normal; }
+
+/* ---- Bigger text: every mono size scales with this one number (was .56) ------------------------------ */
+:root { --kk-mono-adjust: .645; }
+.du-combined-heading { font-size: 24px; }
+.du-panel-title h2 { font-size: 22px; }
+@media (max-width: 767px) { .du-combined-heading { font-size: 19px; } .du-panel-title h2 { font-size: 19px; } }
+/* With the bigger text the side-by-side week | month columns get cramped: stack them unless the screen is wide. */
+@media (min-width: 768px) and (max-width: 1700px) {
+  .du-partner-body { grid-template-columns: minmax(0, 1fr); }
+  .du-week { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; padding: 0 0 22px;
+             border-right: 0; border-bottom: 2px solid var(--du-line); }
+  .du-week > .du-section-label, .du-week > .kk-muted { grid-column: 1 / -1; }
+}
