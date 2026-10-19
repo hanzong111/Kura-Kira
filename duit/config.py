@@ -35,6 +35,10 @@ class Bucket:
     shared: bool = False  # borne half each, whoever paid (unless the message says whose it is)
     months: tuple[str, ...] = ()  # fixed bills only: the months it runs (an installment); empty = every month
     aliases: tuple[str, ...] = ()  # other whole names for it in chat ("rent", "mop")
+    people: tuple[str, ...] = ()  # fixed bills only: who has this bill (e.g. only Hanz's Claude); empty = everyone
+
+    def applies_to(self, person: str) -> bool:
+        return not self.people or person in self.people
 
     def named(self, text: str) -> bool:
         """`text` is this bucket's key, label or an alias, as the whole name (punctuation/case ignored)."""
@@ -77,9 +81,10 @@ class Config:
                 return p
         raise ValueError(f"unknown person: {name!r} (known: {', '.join(self.people)})")
 
-    def buckets_in(self, month: str) -> dict[str, Bucket]:
-        """The buckets that exist in `month` (an installment only shows in its own months)."""
-        return {k: b for k, b in self.buckets.items() if b.active(month)}
+    def buckets_in(self, month: str, person: str | None = None) -> dict[str, Bucket]:
+        """The buckets that exist in `month` (an installment only shows in its own months), optionally only
+        those `person` has (a bill can be just one person's)."""
+        return {k: b for k, b in self.buckets.items() if b.active(month) and (person is None or b.applies_to(person))}
 
     def weekly_bucket_for(self, weekday: int) -> Bucket:
         for b in self.buckets.values():
@@ -103,6 +108,12 @@ def parse(data: dict) -> Config:
         shared = bool(v.get("shared", False))
         if shared and kind != "monthly":
             raise ValueError(f"bucket {k}: only monthly buckets can be shared")
+        who = tuple(v.get("people", ()))
+        if who and kind != "fixed":
+            raise ValueError(f"bucket {k}: only fixed bills can be for some people")
+        for p in who + auto:
+            if p not in people:
+                raise ValueError(f"bucket {k}: unknown person {p!r}")
         months = tuple(str(m) for m in v.get("months", ()))
         if months and kind != "fixed":
             raise ValueError(f"bucket {k}: only fixed bills can have months")
@@ -111,7 +122,7 @@ def parse(data: dict) -> Config:
                 raise ValueError(f"bucket {k}: month must be YYYY-MM, got {m!r}")
         buckets[k] = Bucket(k, v.get("label", k.title()), kind, parse_amount(v["amount"]),
                             tuple(v.get("days", ())), auto, shared, tuple(sorted(months)),
-                            tuple(str(a) for a in v.get("aliases", ())))
+                            tuple(str(a) for a in v.get("aliases", ())), who)
     covered = sorted(d for b in buckets.values() if b.kind == "weekly" for d in b.days)
     if covered and covered != sorted(set(covered)):
         raise ValueError("weekly buckets overlap on some weekday")

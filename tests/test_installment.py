@@ -90,3 +90,27 @@ def test_chuchu_overrules_a_daily_guess(led):
     t.call("duit_log_spend", {"place": "Kopitiam", "amount": 9, "bucket": "daily", "category": "Food"},
            _msg("kopitiam 9", 52))
     assert [led.entry(i)["bucket"] for i in (1, 2, 3)] == ["chuchu", "chuchu", "weekend"]
+
+
+# ---- a bill only one person has (Hanz's Claude subscription) -----------------------------------------
+@pytest.fixture
+def led_claude(cfg, clock):
+    claude = Bucket("claude", "Claude", "fixed", 9000, people=("hanz",), aliases=("claude subscription",))
+    c = dataclasses.replace(cfg, buckets={**cfg.buckets, "claude": claude})
+    return Ledger(db.connect(":memory:"), c, clock)
+
+
+def test_bill_for_one_person(led_claude):
+    led = led_claude
+    st = led.status()
+    assert st["people"]["hanz"]["buckets"]["claude"]["status"] == "due"
+    assert "claude" not in st["people"]["vanisa"]["buckets"]
+    assert st["combined"]["buckets"]["claude"]["count"] == 1
+    assert st["people"]["hanz"]["goals"]["fixed"] - st["people"]["vanisa"]["goals"]["fixed"] == 9000
+    assert ("vanisa", "claude") not in {(r["person"], r["bucket"]) for r in led.fixed_due()}
+    with pytest.raises(LedgerError, match="only Hanz's bill"):
+        led.pay_fixed("vanisa", "claude")
+    led.set_plan("claude", 95)                      # everyone who has it = just Hanz
+    r = Tools(led).call("duit_log_spend", {"place": "claude subscription", "amount": 95}, _msg("claude subscription 95", 60))
+    assert r["reply"] == "✅ Claude RM95.00 · Hanz · Paid for October"
+    assert led.conn.execute("SELECT COUNT(*) FROM fixed_payments WHERE bucket='claude'").fetchone()[0] == 1

@@ -209,7 +209,7 @@ function renderPerson(key, i) {
   // weekday/weekend over the whole month: spent against the sum of this month's week targets
   const mini = [...weekly, ...monthly].map((b) => budget(b.label, p.buckets[b.key],
     { person: key, bucket: b.key, pace: b.kind === "weekly" ? null : el, foot: false })).join("");
-  const bills = fixedBuckets().map((b) => {
+  const bills = fixedBuckets().filter((b) => p.buckets[b.key]).map((b) => {
     const f = p.buckets[b.key];
     return bill(b.label, BUCKET_ICON[b.key] || "receipt", f.paid ? "paid" : "due", f.paid ? "PAID" : "DUE");
   }).join("");

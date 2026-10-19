@@ -170,11 +170,13 @@ class Ledger:
             rows = {(r["person"], r["bucket"]): r["amount_sen"] for r in prev}
             for p in self.cfg.people:
                 for k, b in buckets.items():
+                    if not b.applies_to(p):
+                        continue
                     amt = rows.get((p, k), b.amount_sen)
                     self.conn.execute("INSERT OR IGNORE INTO plans VALUES (?,?,?,?)", (month, p, k, amt))
             for p in self.cfg.people:
                 for k, b in buckets.items():
-                    if b.kind != "fixed":
+                    if b.kind != "fixed" or not b.applies_to(p):
                         continue
                     amt = report.plan_amount(self.conn, month, p, k)
                     auto = p in b.auto_paid
@@ -196,7 +198,9 @@ class Ledger:
             raise LedgerError(str(e)) from None
         if sen < 0:
             raise LedgerError("plan amount can't be negative")
-        people = [self._person(person)] if person else list(self.cfg.people)
+        people = [self._person(person)] if person else [p for p in self.cfg.people if b.applies_to(p)]
+        if not all(b.applies_to(p) for p in people):
+            raise LedgerError(f"{b.label} is only {', '.join(self.cfg.people[x].name for x in b.people)}'s bill")
         with self._tx():
             for p in people:
                 self.conn.execute("UPDATE plans SET amount_sen=? WHERE month=? AND person=? AND bucket=?",
@@ -516,6 +520,8 @@ class Ledger:
             raise LedgerError(f"{bucket!r} is not a fixed bill "
                               f"({', '.join(k for k, x in self.cfg.buckets.items() if x.kind == 'fixed')})")
         month = month or month_key(self.today())
+        if not b.applies_to(p):
+            raise LedgerError(f"{b.label} is only {', '.join(self.cfg.people[x].name for x in b.people)}'s bill")
         if not b.active(month):
             raise LedgerError(f"{b.label} only runs in {', '.join(b.months)}")
         month = self.ensure_month(month)

@@ -226,7 +226,7 @@ def status(conn: sqlite3.Connection, cfg: Config, month: str, today: date) -> di
     first, last = month_bounds(month)
     people = {}
     for p in cfg.people:
-        buckets = {k: bucket_status(conn, cfg, month, p, k, today) for k in cfg.buckets_in(month)}
+        buckets = {k: bucket_status(conn, cfg, month, p, k, today) for k in cfg.buckets_in(month, p)}
         goals = [b for b in buckets.values() if b["kind"] != "fixed"]
         fixed = [b for b in buckets.values() if b["kind"] == "fixed"]
         unsorted = spent(conn, p, None, first, last)
@@ -245,7 +245,7 @@ def status(conn: sqlite3.Connection, cfg: Config, month: str, today: date) -> di
 
     combined_buckets = {}
     for k, b in cfg.buckets_in(month).items():
-        rows = [people[p]["buckets"][k] for p in people]
+        rows = [people[p]["buckets"][k] for p in people if k in people[p]["buckets"]]
         if b.kind == "fixed":
             combined_buckets[k] = {"bucket": k, "label": b.label, "kind": b.kind,
                                    "amount": sum(r["amount"] for r in rows),
