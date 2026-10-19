@@ -215,5 +215,19 @@
     "png2x": "assets/icons/empty-wallet@2x.png",
     "viewBox": "0 0 24 24",
     "size": 24
+  },
+  {
+    "id": "claude",
+    "svg": "assets/icons/claude.svg",
+    "png2x": "assets/icons/claude@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
+  },
+  {
+    "id": "openai",
+    "svg": "assets/icons/openai.svg",
+    "png2x": "assets/icons/openai@2x.png",
+    "viewBox": "0 0 24 24",
+    "size": 24
   }
 ]

@@ -19,7 +19,8 @@ const fill = (n, d) => Math.max(0, Math.min(1, Number.isFinite(ratio(n, d)) ? ra
 const STATES = { ok: "on-track", ahead: "ahead", over: "over" };
 const STATE_LABEL = { "on-track": "On track", ahead: "Ahead of pace", over: "Over budget" };
 const BUCKET_ICON = { weekday: "weekday", weekend: "weekend", extra: "extra", grocery: "grocery", chuchu: "paw",
-                      petrol: "petrol", toll: "toll", parents: "parents", house: "house", car: "car", mop: "calendar" };
+                      petrol: "petrol", toll: "toll", parents: "parents", house: "house", car: "car", mop: "calendar",
+                      claude: "claude", chatgpt: "openai" };
 const SPRITES = ["hanz", "vanisa", "chuchu"];
 
 const icon = (name, cls = "du-icon") => `<img class="${cls}" src="${ASSETS}/icons/${name}.svg" alt="" aria-hidden="true">`;

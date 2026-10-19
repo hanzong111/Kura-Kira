@@ -114,3 +114,13 @@ def test_bill_for_one_person(led_claude):
     r = Tools(led).call("duit_log_spend", {"place": "claude subscription", "amount": 95}, _msg("claude subscription 95", 60))
     assert r["reply"] == "✅ Claude RM95.00 · Hanz · Paid for October"
     assert led.conn.execute("SELECT COUNT(*) FROM fixed_payments WHERE bucket='claude'").fetchone()[0] == 1
+
+
+def test_one_persons_bill_can_be_always_paid(cfg, clock):
+    gpt = Bucket("chatgpt", "ChatGPT", "fixed", 9000, auto_paid=("vanisa",), people=("vanisa",))
+    led = Ledger(db.connect(":memory:"), dataclasses.replace(cfg, buckets={**cfg.buckets, "chatgpt": gpt}), clock)
+    st = led.status()
+    assert st["people"]["vanisa"]["buckets"]["chatgpt"]["status"] == "paid" and "chatgpt" not in st["people"]["hanz"]["buckets"]
+    assert ("vanisa", "chatgpt") not in {(r["person"], r["bucket"]) for r in led.fixed_due()}
+    clock.set("2026-11-01T08:00")
+    assert led.status()["people"]["vanisa"]["buckets"]["chatgpt"]["status"] == "paid"
