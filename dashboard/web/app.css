@@ -147,3 +147,48 @@ strong, b, h3, .du-section-label, .du-month-total, .du-budget-label strong, .du-
 .kk-installment .du-meter, .kk-installment .du-budget-foot { display: block; }
 .kk-installment .du-budget-foot { display: flex; }
 @media (max-width: 767px) { .kk-installments { padding: 0 10px 10px; } }
+
+/* ---- Roomier layout: more air between cards, bars and rows (easier to read) ------------------------- */
+:root { --du-gap: 28px; }
+body { line-height: 1.45; }
+.du-app { padding: 24px; }
+.du-combined { padding: 20px 24px; }
+.du-combined-head { gap: 24px; }
+.du-buckets { gap: 26px 32px; padding: 20px 0 22px; }
+.du-combined-footer { gap: 16px; padding-top: 16px; }
+.du-bills, .du-partner-footer { gap: 12px; }
+.du-partner-body { padding: 20px; gap: 28px; }
+.du-week { padding-right: 24px; gap: 22px; }
+.du-mini-buckets { gap: 20px 24px; margin-top: 18px; }
+.du-partner-footer { margin: 0 20px; padding: 16px 0; }
+.kk-installments { padding: 4px 20px 18px; }
+.du-budget-label { margin-bottom: 7px; }
+.du-budget-foot { margin-top: 7px; }
+.du-month-total { margin-bottom: 6px; }
+.du-meter--hero { margin-bottom: 30px; }
+.du-question { padding: 16px 20px; gap: 16px; }
+.du-log-header { padding: 16px 20px; gap: 16px; }
+.du-table th, .du-table td { padding: 10px 12px; }
+.du-place { padding: 14px 14px; gap: 12px; }
+.kk-summary { padding: 10px 20px; }
+.kk-paid-body { padding: 20px; gap: 18px; }
+.kk-paid-table th, .kk-paid-table td { padding: 10px 12px; }
+.kk-transfers, .kk-paid-keys { gap: 12px 20px; }
+@media (max-width: 767px) {
+  :root { --du-gap: 20px; }
+  .du-app { padding: 16px; }
+  .du-combined { padding: 16px; }
+  .du-buckets { gap: 20px; padding: 16px 0; }
+  .du-partner-body { padding: 16px; gap: 22px; }
+  .du-week { padding-right: 0; gap: 18px; }
+  .du-mini-buckets { gap: 18px; }
+  .du-partner-footer { margin: 0 16px; }
+  .kk-installments { padding: 4px 16px 16px; }
+  .du-log-header { padding: 14px 16px; }
+  .du-mobile-log { padding: 0 16px; }
+  .du-entry { padding: 18px 0; }
+  .kk-paid-body { padding: 16px; }
+  .kk-paid-table th, .kk-paid-table td { padding: 8px 6px; }
+}
+.kk-installment .du-budget-label { flex-wrap: wrap; row-gap: 2px; }
+.kk-installment .du-budget-value { white-space: normal; }
