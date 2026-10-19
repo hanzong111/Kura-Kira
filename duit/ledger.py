@@ -542,8 +542,10 @@ class Ledger:
 
     def fixed_due(self, month: str | None = None) -> list[dict]:
         month = self.ensure_month(month)
+        bills = self.cfg.buckets_in(month)
         return [dict(r) for r in self.conn.execute(
-            "SELECT * FROM fixed_payments WHERE month=? AND paid_at IS NULL ORDER BY person, bucket", (month,))]
+            "SELECT * FROM fixed_payments WHERE month=? AND paid_at IS NULL ORDER BY person, bucket", (month,))
+            if r["bucket"] in bills and bills[r["bucket"]].applies_to(r["person"])]
 
     # ---- reads ------------------------------------------------------------------------------------
     def status(self, month: str | None = None) -> dict:

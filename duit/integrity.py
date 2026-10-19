@@ -53,6 +53,11 @@ def check(conn: sqlite3.Connection, cfg: Config) -> list[str]:
     for s in conn.execute("SELECT * FROM settlements WHERE deleted_at IS NULL"):
         if s["from_person"] not in people or s["to_person"] not in people or s["from_person"] == s["to_person"]:
             problems.append(f"settlement #{s['id']}: bad people {s['from_person']}→{s['to_person']}")
+    for f in conn.execute("SELECT DISTINCT month, person, bucket FROM fixed_payments UNION "
+                          "SELECT DISTINCT month, person, bucket FROM plans"):
+        b = cfg.buckets.get(f["bucket"])
+        if b and not b.applies_to(f["person"]):
+            problems.append(f"{f['month']} {f['person']} {f['bucket']}: {b.label} isn't {f['person']}'s bill")
     for f in conn.execute("""SELECT f.month, f.person, f.bucket, f.amount_sen, p.amount_sen AS plan FROM fixed_payments f
                              JOIN plans p ON p.month = f.month AND p.person = f.person AND p.bucket = f.bucket
                              WHERE f.amount_sen != p.amount_sen"""):

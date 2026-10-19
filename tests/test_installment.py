@@ -124,3 +124,12 @@ def test_one_persons_bill_can_be_always_paid(cfg, clock):
     assert ("vanisa", "chatgpt") not in {(r["person"], r["bucket"]) for r in led.fixed_due()}
     clock.set("2026-11-01T08:00")
     assert led.status()["people"]["vanisa"]["buckets"]["chatgpt"]["status"] == "paid"
+
+
+def test_stray_row_for_someone_without_the_bill_is_ignored_and_flagged(led_claude):
+    from duit.integrity import check
+    led = led_claude
+    led.ensure_month("2026-10")
+    led.conn.execute("INSERT INTO fixed_payments VALUES ('2026-10', 'vanisa', 'claude', 9000, NULL, 0)")
+    assert ("vanisa", "claude") not in {(r["person"], r["bucket"]) for r in led.fixed_due()}
+    assert check(led.conn, led.cfg) == ["2026-10 vanisa claude: Claude isn't vanisa's bill"]
