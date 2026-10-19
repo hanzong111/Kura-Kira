@@ -205,3 +205,5 @@ body { line-height: 1.45; }
              border-right: 0; border-bottom: 2px solid var(--du-line); }
   .du-week > .du-section-label, .du-week > .kk-muted { grid-column: 1 / -1; }
 }
+.kk-paid-table { justify-self: center; }
+.kk-whopaid .du-settle, .kk-transfers { justify-self: center; justify-content: center; }
