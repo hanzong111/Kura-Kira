@@ -141,7 +141,7 @@ def test_edit_total_keeps_people_and_proportions(tools, ledger):
                                   "bucket": "daily"}, msg("zapfan 10 hanz 30 vanisa hanz paid", msg_id="3"))
     tools.call("duit_edit_spend", {"entry_id": 2, "amount": 80}, msg("edit #2 80", msg_id="4"))
     assert ledger.entry(2)["shares"] == {"hanz": 2000, "vanisa": 6000}
-    assert r["reply"].startswith("✏️ #1 Grab")
+    assert r["reply"].startswith("✏️ **Expense updated · #1**\n\n🌤 **Grab · ")
 
 
 # ---- audit, integrity, backup -----------------------------------------------------------------------
@@ -237,7 +237,8 @@ def test_plugin_keeps_question_after_a_refusal(plugin):
     tools_["duit_log_spend"]({"place": "coffee", "part": 2})          # no amount -> refused
     final = hooks["transform_llm_output"](response_text="How much was the coffee?")
     lines = final.splitlines()
-    assert lines[0].startswith("✅ #1 lunch") and lines[-1] == "How much was the coffee?"
+    assert lines[:3] == ["✅ **Expense recorded · #1**", "", lines[2]] and lines[2].startswith("🗓 **Lunch · ")
+    assert lines[-1] == "How much was the coffee?"
 
 
 def test_named_payer_owns_a_plain_spend(tools, ledger):
@@ -298,7 +299,7 @@ def test_plugin_applies_answer_in_code_and_reasks_on_silence(plugin, monkeypatch
     e = tools.led.entry(1)
     assert (e["bucket"], e["category"], e["needs"]) == ("chuchu", "Toiletries", [])
     final = hooks["transform_llm_output"](response_text="NO_REPLY")       # the model said nothing useful
-    assert final.startswith("✅ #1 Vanity Box · Chu Chu / Toiletries · RM74.00")
+    assert final.startswith("✅ **Expense recorded · #1**\n\n🐱 **Vanity Box · RM74.00**\nChu Chu / Toiletries")
     assert tools.led.lookup_place("vanity box")["bucket"] == "chuchu"       # remembered
 
     # an unclear reply the model also ignores -> code re-asks instead of a Hermes warning

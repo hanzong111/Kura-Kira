@@ -51,43 +51,96 @@ def budget_phrase(cfg: Config, st: dict, spent_on: str) -> str:
     return week_phrase(cfg, st) if "week" in st else left_phrase(cfg, st, spent_on)
 
 
-def spend_reply(cfg: Config, e: dict) -> str:
-    """The one-to-three line confirmation after logging, editing or resolving a spend."""
+BUCKET_EMOJI = {"weekday": "🗓", "weekend": "🌤", "extra": "✨", "grocery": "🛒", "chuchu": "🐱", "petrol": "⛽",
+                "toll": "🛣️", "parents": "👪", "house": "🏠", "car": "🚗"}
+
+
+def _pct(spent: int, cap: int) -> int:
+    return round(spent * 100 / cap) if cap else (0 if spent == 0 else 100)
+
+
+def place_title(place: str) -> str:
+    """'watson' -> 'Watson'; names with their own capitals stay as typed."""
+    return place[:1].upper() + place[1:] if place[:1].islower() else place
+
+
+def _budget_block(cfg: Config, e: dict) -> list[str]:
+    """How the spend's bucket now stands for everyone who bears it (as one line when they stand the same)."""
+    c = cfg.currency
+    status = {p: s for p, s in (e.get("status") or {}).items() if p in e["shares"]}
+    if not status:
+        return []
+    weekly = all("week" in s for s in status.values())
+    view = {p: (s["week"] if weekly else s) for p, s in status.items()}
+    cap_key = "allowance" if weekly else "cap"
+    states = {v["status"] for v in view.values()} | ({"ahead"} if e.get("alerts") else set())
+    head = "🟥" if any(v["left"] < 0 for v in view.values()) else "⚠️" if "ahead" in states else "🟩"
+    b = cfg.buckets[e["bucket"]]
+    title = (("Budget this weekend" if b.key == "weekend" else f"{b.label} budget this week") if weekly
+             else f"{_month_name(e['spent_on'])} {b.label} budget")
+    rows = list(view.items())
+    alike = len(rows) > 1 and all((v["left"], v[cap_key], v["spent"]) == (rows[0][1]["left"], rows[0][1][cap_key],
+                                                                          rows[0][1]["spent"]) for _, v in rows)
+
+    def left(v: dict, each: str = "") -> str:
+        return f"Over by {fmt(-v['left'], c)}{each}" if v["left"] < 0 else f"{fmt(v['left'], c)} left{each}"
+
+    def carry(v: dict) -> str | None:
+        if not weekly or not v["carry"]:
+            return None
+        return (f"Target {fmt(v['target'], c)} + {fmt(v['carry'], c)} carried forward" if v["carry"] > 0
+                else f"Target {fmt(v['target'], c)} − {fmt(-v['carry'], c)} overspent earlier")
+
+    if len(rows) == 1 or alike:
+        v = rows[0][1]
+        out = [f"{head} **{title}{' — per person' if alike else ''}**", f"**{left(v, ' each' if alike else '')}**",
+               f"{fmt(v['spent'], c)} of {fmt(v[cap_key], c)} spent · **{_pct(v['spent'], v[cap_key])}% used**"]
+        return out + [x for x in [carry(v)] if x]
+    out = [f"{head} **{title}**"]
+    for p, v in rows:
+        out.append(f"• {_name(cfg, p)}: **{left(v)}** · {fmt(v['spent'], c)} of {fmt(v[cap_key], c)} "
+                   f"({_pct(v['spent'], v[cap_key])}%)")
+        if carry(v):
+            out.append(f"  {carry(v)}")
+    return out
+
+
+def spend_reply(cfg: Config, e: dict, verb: str = "recorded") -> str:
+    """The confirmation after logging, editing or resolving a spend: what it was, who paid, whose it is,
+    and how that bucket now stands."""
     c = cfg.currency
     if e.get("duplicate"):
         return f"Already logged as #{e['id']}."
-    bucket = cfg.buckets[e["bucket"]].label if e["bucket"] else "❓ Unsorted"
-    head = f"✅ #{e['id']} {e['place']} · {bucket} · {fmt(e['total_sen'], c)}"
-    shares = e["shares"]
-    if len(shares) == 1:
-        (person, _), = shares.items()
-        head += f" · {_name(cfg, person)}"
-        if e["paid_by"] not in (person, None):
-            head += f" · paid by {_name(cfg, e['paid_by'])}"
+    b = cfg.buckets.get(e["bucket"]) if e["bucket"] else None
+    icon = "✏️" if verb == "updated" else "✅"
+    lines = [f"{icon} **Expense {verb} · #{e['id']}**", ""]
+    place = place_title(e["place"])
+    named_as_bucket = b is not None and _squash(e["place"]) in (_squash(b.key), _squash(b.label))
+    lines.append(f"{BUCKET_EMOJI.get(e['bucket'], '❓')} **{b.label if named_as_bucket else place} · "
+                 f"{fmt(e['total_sen'], c)}**")
+    if not named_as_bucket:
+        lines.append(" · ".join(x for x in (b.label if b else "❓ Unsorted", e.get("category")) if x))
+
+    shares, payer = e["shares"], e["paid_by"]
+    if payer == "each":
+        lines.append("Each paid their own")
     else:
-        b = cfg.buckets.get(e["bucket"]) if e["bucket"] else None
-        if b and b.shared and not e.get("shares_given"):
-            head += " · shared"
-        head += f" · paid by {_name(cfg, e['paid_by'])}"
-    lines = [head]
-    status = e.get("status") or {}
-    if len(shares) == 1:
-        (person, _), = shares.items()
-        if person in status:
-            st = status[person]
-            if "week" in st:
-                lines.append(f"   {week_phrase(cfg, st)}")
-            else:
-                lines[0] += f" — {left_phrase(cfg, st, e['spent_on'])}"
-    else:
-        for person, amt in shares.items():
-            line = f"   {_name(cfg, person)} {fmt(amt, c)}"
-            if person in status:
-                line += f" → {budget_phrase(cfg, status[person], e['spent_on'])}"
-            lines.append(line)
-    for a in e.get("alerts") or []:
-        lines.append(alert_line(cfg, a))
-    return "\n".join(lines)
+        paid = f"Paid by **{_name(cfg, payer)}**"
+        if len(shares) == 1:
+            (owner, _), = shares.items()
+            lines.append(paid if owner == payer else f"{paid} · For **{_name(cfg, owner)}**")
+        else:
+            even = max(shares.values()) - min(shares.values()) <= 1
+            lines.append(f"{paid} · {'Split equally' if even else 'Split'}")
+    if len(shares) > 1:
+        lines.append(" · ".join(f"{_name(cfg, p)}: {fmt(a, c)}" for p, a in shares.items()))
+
+    block = _budget_block(cfg, e) if b else []
+    return "\n".join(lines + ([""] + block if block else []))
+
+
+def _squash(s: str) -> str:
+    return "".join(ch for ch in s.lower() if ch.isalnum())
 
 
 def alert_line(cfg: Config, a: dict) -> str:
@@ -145,34 +198,92 @@ def balance_line(cfg: Config, bal: dict) -> str:
     return f"Balance: {_name(cfg, o['from'])} owes {_name(cfg, o['to'])} {fmt(o['amount'], cfg.currency)}"
 
 
+def _plural(label: str) -> str:
+    return label + "s" if label.lower().endswith("day") else label
+
+
+def _left_word(cfg: Config, b: dict) -> str:
+    """How a monthly bucket stands: 'RM35.25 left ⚠️' (ahead of pace), 'fully used ⚠️', 'over by RM5.00 🟥'."""
+    c = cfg.currency
+    if b["left"] < 0:
+        return f"over by {fmt(-b['left'], c)} 🟥"
+    if b["left"] == 0 and b["cap"]:
+        return "fully used ⚠️"
+    return f"{fmt(b['left'], c)} left" + (" ⚠️" if b["status"] == "ahead" else "")
+
+
+def _month_left(cfg: Config, g: dict) -> str:
+    c = cfg.currency
+    return f"{fmt(g['left'], c)} left" if g["left"] >= 0 else f"over by {fmt(-g['left'], c)} 🟥"
+
+
 def status_text(cfg: Config, st: dict, person: str | None = None) -> str:
-    """Text version of the dashboard for 'how are we doing?' / 'how much left?'."""
+    """'How are we doing?': left this month, this week's allowance, other balances, bills, settlement.
+    Every number comes from the status dict (the ledger); this only lays them out."""
     c = cfg.currency
     month = date.fromisoformat(st["month"] + "-01").strftime("%B %Y")
-    out = [f"📊 {month} · {round(st['elapsed'] * 100)}% through the month"]
-    g = st["combined"]["goals"]
+    who = [p for p in st["people"] if person in (None, p)]
+    g = st["combined"]["goals"] if person is None else st["people"][person]["goals"]
+    used = round(g["spent"] * 100 / g["cap"]) if g["cap"] else 0
+    out = [f"📊 **DUIT · {month}**", f"Month elapsed: {round(st['elapsed'] * 100)}% · Budget used: {used}%"]
     if person is None:
-        out.append(f"Together: {fmt(g['spent'], c)} / {fmt(g['cap'], c)} {DOT[g['status']]}")
-    for p, v in st["people"].items():
-        if person and p != person:
-            continue
-        pg = v["goals"]
-        out.append(f"\n{v['name']}: {fmt(pg['spent'], c)} / {fmt(pg['cap'], c)} {DOT[pg['status']]}")
+        out += ["", f"💰 **Together: {_month_left(cfg, g)}**", f"Spent {fmt(g['spent'], c)} of {fmt(g['cap'], c)}"]
+
+    for p in who:
+        v = st["people"][p]
+        out += ["", f"{cfg.people[p].emoji} **{v['name']} · {_month_left(cfg, v['goals'])} this month**"]
+        if person:
+            out.append(f"Spent {fmt(v['goals']['spent'], c)} of {fmt(v['goals']['cap'], c)}")
         for b in v["buckets"].values():
-            if b["kind"] == "fixed":
+            if b["kind"] != "weekly":
                 continue
-            if "week" in b:
-                out.append(f"  {week_phrase(cfg, b)}")
-            else:
-                out.append(f"  {b['label']}: {fmt(b['left'], c)} left ({fmt(b['spent'], c)}/{fmt(b['cap'], c)}) "
-                           f"{DOT[b['status']]}")
-        fixed = [b for b in v["buckets"].values() if b["kind"] == "fixed"]
-        out.append("  " + " · ".join(f"{b['label']} {DOT[b['status']]} {b['status'].upper()}" for b in fixed))
+            w = b.get("week")
+            if not w:  # not the current month: the whole month's figure
+                out.append(f"• {_plural(b['label'])}: **{_left_word(cfg, b)}**")
+                continue
+            left = (f"{fmt(w['left'], c)} left" if w["left"] > 0 else "fully used ⚠️" if w["left"] == 0
+                    else f"over by {fmt(-w['left'], c)} 🟥")
+            out.append(f"• {_plural(b['label'])}: **{left}**")
+            if w["carry"] > 0:
+                out.append(f"  Includes {fmt(w['carry'], c)} carried forward")
+            elif w["carry"] < 0:
+                out.append(f"  After {fmt(-w['carry'], c)} overspent earlier this month")
         if v["unsorted"]:
-            out.append(f"  ❓ Unsorted: {fmt(v['unsorted'], c)}")
-    out.append("\n" + balance_line(cfg, st["balance"]))
+            out.append(f"• ❓ Unsorted: {fmt(v['unsorted'], c)}")
+
+    # monthly buckets: one line when everyone stands the same (shared buckets always do), else one line per person
+    same, differ = [], []
+    for k, bucket in cfg.buckets.items():
+        rows = [st["people"][p]["buckets"][k] for p in who if k in st["people"][p]["buckets"]]
+        if bucket.kind != "monthly" or not rows:
+            continue
+        alike = all((r["left"], r["cap"], r["status"]) == (rows[0]["left"], rows[0]["cap"], rows[0]["status"])
+                    for r in rows)
+        (same if alike else differ).append(k)
+    if same:
+        out += ["", f"🛒 **Other monthly balances{' — per person' if len(who) > 1 else ''}**"]
+        out += [f"• {cfg.buckets[k].label}: {_left_word(cfg, st['people'][who[0]]['buckets'][k])}" for k in same]
+    for k in differ:
+        out += ["", f"{BUCKET_EMOJI.get(k, '•')} **{cfg.buckets[k].label} remaining**",
+                " · ".join(f"{st['people'][p]['name']}: {_left_word(cfg, st['people'][p]['buckets'][k]).removesuffix(' left')}"
+                           for p in who)]
+
+    due = [(p, b) for p in who for b in st["people"][p]["buckets"].values() if b["kind"] == "fixed" and not b["paid"]]
+    if not due:
+        whom = "" if len(who) == 1 else " for both" if len(who) == 2 else " for everyone"
+        out += ["", f"✅ **All fixed bills paid{whom}**"]
+    else:
+        out += ["", "⏳ **Fixed bills due**"]
+        for p in who:
+            mine = [b for q, b in due if q == p]
+            if mine:
+                out.append(f"• {st['people'][p]['name']}: " + ", ".join(f"{b['label']} {fmt(b['amount'], c)}" for b in mine))
+
+    o = st["balance"]["owes"]
+    out += ["", "💸 **Settlement**",
+            f"{_name(cfg, o['from'])} owes {_name(cfg, o['to'])} **{fmt(o['amount'], c)}**" if o else "All settled ✓"]
     if st["pending"]:
-        out.append(f"❓ {len(st['pending'])} waiting for an answer")
+        out += ["", f"❓ {len(st['pending'])} waiting for an answer"]
     return "\n".join(out)
 
 

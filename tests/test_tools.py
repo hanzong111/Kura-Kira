@@ -28,9 +28,10 @@ def test_every_spec_has_a_handler(cfg, tools):
 def test_log_spend_reply(tools):
     r = tools.call("duit_log_spend", {"place": "Sushi-Mentai", "amount": "RM56.50", "bucket": "daily",
                                       "category": "food"}, HANZ)
-    assert r["reply"] == ("✅ #1 Sushi-Mentai · Weekend · RM56.50 · Hanz\n"
-                          "   This weekend: target RM200.00 (2 × RM100.00) + RM400.00 saved = RM600.00 · spent RM56.50 · "
-                          "RM543.50 left 🟩")
+    assert r["reply"] == ("✅ **Expense recorded · #1**\n\n"
+                          "🌤 **Sushi-Mentai · RM56.50**\nWeekend · Food\nPaid by **Hanz**\n\n"
+                          "🟩 **Budget this weekend**\n**RM543.50 left**\nRM56.50 of RM600.00 spent · **9% used**\n"
+                          "Target RM200.00 + RM400.00 carried forward")
     assert r["question"] is None
 
 
@@ -41,7 +42,7 @@ def test_sender_comes_from_context_not_model(cfg, ledger):
     t = Tools(ledger)
     r = t.call("duit_log_spend", {"place": "Lunch", "amount": 10, "bucket": "daily"},
                Context(sender_telegram_id="222", chat_id="g", msg_id="5"))
-    assert "· Vanisa" in r["reply"]
+    assert "Paid by **Vanisa**" in r["reply"]
     r = t.call("duit_log_spend", {"place": "x", "amount": 1}, Context(sender_telegram_id="999", msg_id="6"))
     assert "isn't from Hanz or Vanisa" in r["error"]
 
@@ -65,8 +66,8 @@ def test_split_without_payer_question_then_answer(tools):
     assert q["text"] == ("@Hanz @Vanisa #1 Zapfan RM27.70 (Hanz RM13.20 · Vanisa RM14.50): who paid?\n"
                          "Reply: Hanz / Vanisa / Each paid own")
     a = tools.call("duit_answer", {"entry_id": 1, "paid_by": "Hanz"}, ctx("hanz", 3))
-    assert a["needs"] == [] and "paid by Hanz" in a["reply"]
-    assert "Vanisa owes Hanz RM14.50" in tools.call("duit_status", {}, HANZ)["reply"]
+    assert a["needs"] == [] and "Paid by **Hanz**" in a["reply"]
+    assert "Vanisa owes Hanz **RM14.50**" in tools.call("duit_status", {}, HANZ)["reply"]
 
 
 def test_answer_without_id_needs_single_pending(tools):
@@ -81,7 +82,7 @@ def test_unsorted_question_options(tools):
     r = tools.call("duit_log_spend", {"place": "Decathlon", "amount": 120, "bucket_options": ["daily", "extra"]},
                    VANISA)
     assert r["question"]["options"] == ["Everyday (weekday/weekend)", "Extra", "Other"]
-    assert r["reply"] == "✅ #1 Decathlon · ❓ Unsorted · RM120.00 · Vanisa"
+    assert r["reply"] == "✅ **Expense recorded · #1**\n\n❓ **Decathlon · RM120.00**\n❓ Unsorted\nPaid by **Vanisa**"
     tools.call("duit_answer", {"bucket": "daily", "category": "Sport"}, ctx("vanisa", 50))
     assert tools.call("duit_lookup_place", {"name": "decathlon"}, VANISA)["place"]["category"] == "Sport"
 
@@ -100,7 +101,7 @@ def test_edit_and_undo_default_to_senders_latest(tools, ledger):
     tools.call("duit_log_spend", {"place": "Petronas", "amount": 80, "bucket": "petrol"}, HANZ)
     tools.call("duit_log_spend", {"place": "Lunch", "amount": 9, "bucket": "daily"}, VANISA)
     r = tools.call("duit_edit_spend", {"amount": 85}, ctx("hanz", 3))
-    assert r["reply"].startswith("✏️ #1 Petronas · Petrol · RM85.00")
+    assert r["reply"].startswith("✏️ **Expense updated · #1**\n\n⛽ **Petronas · RM85.00**\nPetrol")
     r = tools.call("duit_delete_spend", {}, ctx("hanz", 4))
     assert r["reply"] == "🗑️ Deleted #1 Petronas RM85.00"
     assert [e["place"] for e in ledger.list_entries()] == ["Lunch"]
@@ -176,7 +177,8 @@ def test_shared_bucket_message_is_split_by_code(tools, ledger):
                    Context(sender="hanz", chat_id="g", msg_id="70", text="lotus's grocery 100"))
     e = ledger.entry(1)
     assert e["bucket"] == "grocery" and e["shares"] == {"hanz": 5000, "vanisa": 5000} and e["paid_by"] == "hanz"
-    assert r["reply"].splitlines()[0] == "✅ #1 Lotus's · Grocery · RM100.00 · shared · paid by Hanz"
+    assert r["reply"].splitlines()[2:5] == ["🛒 **Lotus's · RM100.00**", "Grocery · Groceries",
+                                            "Paid by **Hanz** · Split equally"]
     r = tools.call("duit_log_spend", {"place": "Watsons", "amount": "30", "bucket": "chuchu", "for_person": "vanisa"},
                    Context(sender="hanz", chat_id="g", msg_id="71", text="watsons 30 for vanisa"))
     assert ledger.entry(2)["shares"] == {"vanisa": 3000}

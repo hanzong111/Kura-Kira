@@ -457,7 +457,7 @@ class Tools:
                           category=a.get("category"),
                           spent_on=self._day(a["date"], ctx) if a.get("date") else None, shares_given=said)
         r = self._spend_result(e)
-        r["reply"] = "✏️ " + r["reply"].removeprefix("✅ ")
+        r["reply"] = replies.spend_reply(self.cfg, e, verb="updated")
         return r
 
     def delete_spend(self, a: dict, ctx: Context) -> dict:

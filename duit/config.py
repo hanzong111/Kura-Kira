@@ -22,6 +22,7 @@ class Person:
     key: str
     name: str
     telegram_id: int = 0
+    emoji: str = "👤"  # shown next to their name in chat summaries
 
 
 @dataclass(frozen=True)
@@ -94,7 +95,7 @@ class Config:
 
 
 def parse(data: dict) -> Config:
-    people = {k: Person(k, v.get("name", k.title()), int(v.get("telegram_id", 0)))
+    people = {k: Person(k, v.get("name", k.title()), int(v.get("telegram_id", 0)), v.get("emoji", "👤"))
               for k, v in data["people"].items()}
     buckets = {}
     for k, v in data["buckets"].items():

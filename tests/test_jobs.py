@@ -24,10 +24,10 @@ def test_weekly_recap(ledger):
     ledger.pay_fixed("vanisa", "parents", "2026-10")
     text = jobs.recap_text(ledger, date(2026, 10, 18))
     lines = text.splitlines()
-    assert lines[0] == "📅 Week 12 Oct – 18 Oct"
-    assert lines[1] == ("Hanz: Weekday RM30.00/RM100.00 (saved RM70.00) 🟩 · "
-                        "Weekend RM230.00/RM200.00 (over RM30.00) 🟥")
-    assert "Top this week: Sushi Zanmai RM230.00, Zapfan RM30.00" in text
+    assert lines[:2] == ["📅 **Weekly recap · 12–18 Oct**", "💰 **RM340.00 saved together**"]  # 70+100-30+200
+    assert "🗓 **Weekdays**\n• Hanz: spent RM30.00 of RM100.00\n  **Saved RM70.00**\n" in text
+    assert "• Hanz: spent RM230.00 of RM200.00\n  **Over by RM30.00 🟥**" in text
+    assert "🛍 **Top spending this week**\n1. Sushi Zanmai · RM230.00\n2. Zapfan · RM30.00" in text
     assert "Parents" not in text                                                # a bill, never a flag
 
 
@@ -69,7 +69,12 @@ def test_send_posts_to_the_group(monkeypatch, cfg):
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123:abc")
     monkeypatch.setattr(jobs.urllib.request, "urlopen", fake_urlopen)
     jobs.send(replace(cfg, telegram_chat_id="-100"), "hello")
-    assert sent == [("https://api.telegram.org/bot123:abc/sendMessage", {"chat_id": "-100", "text": "hello"})]
+    assert sent == [("https://api.telegram.org/bot123:abc/sendMessage",
+                     {"chat_id": "-100", "text": "hello", "parse_mode": "HTML"})]
+
+
+def test_bold_and_escaping_for_telegram_html():
+    assert jobs.to_html("**Settlement** <b> & co") == "<b>Settlement</b> &lt;b&gt; &amp; co"
 
 
 def test_token_read_from_env_file_only(monkeypatch, tmp_path):
