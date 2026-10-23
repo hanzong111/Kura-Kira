@@ -14,6 +14,7 @@ Bad input returns {"error", "ask": true} so the bot asks instead of guessing.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any, Callable
@@ -164,6 +165,9 @@ def chat_lines(result: dict) -> list[str]:
     return lines
 
 
+_SPLIT_WORDS = re.compile(r"\b(split|shared|share|half|halves|50\s*[/:-]\s*50)\b", re.I)
+
+
 class Tools:
     def __init__(self, ledger: Ledger):
         self.led = ledger
@@ -259,9 +263,11 @@ class Tools:
         if problem:
             raise LedgerError(problem)
 
-    def _amounts(self, a: dict, ctx: Context, sender: str, required: bool) -> tuple[int | None, dict | None]:
+    def _amounts(self, a: dict, ctx: Context, sender: str, required: bool,
+                 known_total: int | None = None) -> tuple[int | None, dict | None]:
         """Turn what the model read (amount + split / for_person / stated shares) into a total and shares.
-        All arithmetic happens here; every number the model passed must appear in the message."""
+        All arithmetic happens here; every number the model passed must appear in the message.
+        known_total: an edit's existing total, so "split it" without an amount re-splits what's there."""
         stated = a.get("shares") or None
         split = (a.get("split") or "").strip().lower() or None
         for_person = self._person(a.get("for_person"), ctx)
@@ -277,6 +283,8 @@ class Tools:
                 if p in (None, "each"):
                     raise LedgerError(f"shares must be per person, got {k!r}")
                 shares[p] = self._sen(v, f"{self.cfg.people[p].name}'s share")
+            if total is not None and total != sum(shares.values()) and self._only_a_share(ctx, total, shares):
+                total = None  # "13.20 hanz, 14.50 vanisa": the model copied the first share as the total
             checks = {f"{self.cfg.people[p].name}'s share": v for p, v in shares.items()}
             if total is not None:
                 checks["total"] = total
@@ -288,11 +296,14 @@ class Tools:
                                       f"up to {sum(shares.values()) / 100:.2f}. Ask which is right")
             return total, shares
 
-        if total is None:
+        if total is None and known_total is not None and (split or for_person):
+            total = known_total
+        elif total is None:
             if required:
                 raise LedgerError("amount is missing — ask how much")
             return None, None
-        self._verify(ctx, {"total": total})
+        else:
+            self._verify(ctx, {"total": total})
 
         if split:
             people = [self._person(p, ctx) for p in (a.get("split_between") or list(self.cfg.people))]
@@ -400,6 +411,23 @@ class Tools:
             raise LedgerError(f"#{entry_id} is waiting for their answer — post the question and wait; "
                               "don't answer it yourself")
 
+    @staticmethod
+    def _only_a_share(ctx: Context, total: int, shares: dict[str, int]) -> bool:
+        """The 'total' is one of the shares and the message never writes it again on its own."""
+        if ctx.text is None or total not in shares.values():
+            return False
+        nums = textcheck.money_numbers(textcheck.strip_reply_quote(ctx.text))
+        return nums.count(total) <= list(shares.values()).count(total)
+
+    def _check_split_said(self, ctx: Context, total: int) -> None:
+        """The message says it's split but the call has no split: refuse, so the spend is logged right the
+        first time (not logged whole, then edited — the group would see both). Only for one-amount messages,
+        where the split can only mean this spend."""
+        text = textcheck.strip_reply_quote(ctx.text) if ctx.text else ""
+        if _SPLIT_WORDS.search(text) and not textcheck.unused_numbers(text, [total]):
+            raise LedgerError("the message says it's split — call again with split=\"even\" (or the ratio, e.g. "
+                              "\"2:1\") and split_between")
+
     # ---- handlers ---------------------------------------------------------------------------------
     def log_spend(self, a: dict, ctx: Context) -> dict:
         sender = self._sender(ctx)
@@ -418,6 +446,8 @@ class Tools:
         total, shares = self._amounts(a, ctx, owner, required=True)
         said = bool(a.get("shares") or a.get("split") or a.get("for_person"))
         bucket, category, _ = self._classify(a)
+        if not said and total is not None and not (bucket in self.cfg.buckets and self.cfg.buckets[bucket].shared):
+            self._check_split_said(ctx, total)
         e = self.led.log_spend(
             sender=sender, place=a.get("place", ""), total=None if total is None else _rm(total),
             shares={p: _rm(v) for p, v in shares.items()}, paid_by=payer,
@@ -436,6 +466,10 @@ class Tools:
                 raise LedgerError(f"{len(pend)} entries are waiting ({ids}) — ask them to reply to the question")
             entry_id = pend[0]["id"]
         self._not_own_question(int(entry_id), ctx)
+        if a.get("paid_by") and "payer" not in self.led.entry(int(entry_id))["needs"]:
+            # "#1 should be split" read as an answer once overwrote a known payer with "each"
+            raise LedgerError(f"#{entry_id} isn't waiting for who paid — for a change use duit_edit_spend "
+                              "(split / for_person / paid_by)")
         e = self.led.resolve(int(entry_id), bucket=a.get("bucket") or None, category=a.get("category") or None,
                              paid_by=self._person(a.get("paid_by"), ctx))
         return self._spend_result(e)
@@ -445,7 +479,7 @@ class Tools:
         if a.get("paid_by") or a.get("bucket"):
             self._not_own_question(entry_id, ctx)
         old = self.led.entry(entry_id)
-        total, shares = self._amounts(a, ctx, old["sender"], required=False)
+        total, shares = self._amounts(a, ctx, old["sender"], required=False, known_total=old["total_sen"])
         said = bool(a.get("shares") or a.get("split") or a.get("for_person"))
         if shares is not None and not said:
             # "wrong, should be 30": same people, same proportions, new total

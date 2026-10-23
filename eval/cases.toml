@@ -297,3 +297,263 @@ text = "Vanisa Paid RM70 ( Sushi Zanmai , food )"
 expect = { kind = "spend", place = "Sushi Zanmai", amount = 70, shares = { vanisa = 70 }, paid_by = "vanisa", category = "Food" }
 note = "real bug 2026-10-18: was charged to Hanz"
 
+
+# ---- robustness sweep (2026-10-23): payer × split × amount format × order × separators ---------------
+# the real message that was logged whole and then edited (two replies posted)
+[[case]]
+id = "rb-payer-first-split-between"
+sender = "hanz"
+text = "Hanz paid RM27 , Coffee , split between vanisa and Hanz"
+expect = { kind = "spend", place = "coffee", amount = 27, shares = { hanz = 13.50, vanisa = 13.50 }, paid_by = "hanz", bucket = "daily", category = "Food" }
+
+[[case]]
+id = "rb-other-payer-split-typo"
+sender = "hanz"
+text = "Vanisa paid RM15 , for SOurdough , split between hanz and vanisa"
+expect = { kind = "spend", place = "sourdough", amount = 15, shares = { hanz = 7.50, vanisa = 7.50 }, paid_by = "vanisa", bucket = "daily" }
+
+[[case]]
+id = "rb-split-with"
+sender = "vanisa"
+text = "sushi king 46 split with hanz, i paid"
+expect = { kind = "spend", amount = 46, shares = { hanz = 23, vanisa = 23 }, paid_by = "vanisa", bucket = "daily", category = "Food" }
+
+[[case]]
+id = "rb-half-half"
+sender = "hanz"
+text = "kfc rm32 half half, vanisa paid"
+expect = { kind = "spend", amount = 32, shares = { hanz = 16, vanisa = 16 }, paid_by = "vanisa", bucket = "daily" }
+
+[[case]]
+id = "rb-5050"
+sender = "hanz"
+text = "dinner 50/50 RM88, hanz paid"
+expect = { kind = "spend", amount = 88, shares = { hanz = 44, vanisa = 44 }, paid_by = "hanz" }
+
+[[case]]
+id = "rb-shared-plain-food"
+sender = "vanisa"
+text = "pizza hut 64 shared, vanisa paid"
+expect = { kind = "spend", amount = 64, shares = { hanz = 32, vanisa = 32 }, paid_by = "vanisa", bucket = "daily" }
+
+[[case]]
+id = "rb-split-odd-sen"
+sender = "hanz"
+text = "texas chicken 25.55 split, hanz paid"
+expect = { kind = "spend", amount = 25.55, paid_by = "hanz" }
+
+[[case]]
+id = "rb-ratio-vanisa-first"
+sender = "hanz"
+text = "steak 90 split 2:1 vanisa:hanz, hanz paid"
+expect = { kind = "spend", amount = 90, shares = { vanisa = 60, hanz = 30 }, paid_by = "hanz" }
+
+[[case]]
+id = "rb-i-paid"
+sender = "vanisa"
+text = "i paid 18 for nasi kandar"
+expect = { kind = "spend", amount = 18, shares = { vanisa = 18 }, paid_by = "vanisa", bucket = "daily", category = "Food" }
+
+[[case]]
+id = "rb-other-paid-plain"
+sender = "hanz"
+text = "vanisa paid 35 for bubble tea and cake"
+expect = { kind = "spend", amount = 35, shares = { vanisa = 35 }, paid_by = "vanisa", bucket = "daily" }
+
+[[case]]
+id = "rb-for-hanz-by-vanisa"
+sender = "vanisa"
+text = "bought hanz's lunch 14, I paid"
+expect = { kind = "spend", amount = 14, shares = { hanz = 14 }, paid_by = "vanisa" }
+
+[[case]]
+id = "rb-treat"
+sender = "hanz"
+text = "i belanja vanisa starbucks 22"
+expect = { kind = "spend", amount = 22, shares = { vanisa = 22 }, paid_by = "hanz" }
+
+# ---- amount formats ----
+[[case]]
+id = "rb-rm-no-space-decimal"
+sender = "hanz"
+text = "RM8.90 roti canai"
+expect = { kind = "spend", amount = 8.90, shares = { hanz = 8.90 }, bucket = "daily", category = "Food" }
+
+[[case]]
+id = "rb-ringgit-word"
+sender = "vanisa"
+text = "lunch 12 ringgit"
+expect = { kind = "spend", amount = 12, shares = { vanisa = 12 }, bucket = "daily" }
+
+[[case]]
+id = "rb-trailing-rm"
+sender = "hanz"
+text = "chicken rice 9.50rm"
+expect = { kind = "spend", amount = 9.50, bucket = "daily" }
+
+[[case]]
+id = "rb-comma-thousands"
+sender = "hanz"
+text = "new phone RM1,299 extra"
+expect = { kind = "spend", amount = 1299, bucket = "extra" }
+
+[[case]]
+id = "rb-dash-sep"
+sender = "vanisa"
+text = "Tealive - 7.40"
+expect = { kind = "spend", amount = 7.40, bucket = "daily" }
+
+[[case]]
+id = "rb-newlines"
+sender = "hanz"
+text = "Zus coffee\nRM15.80\nhanz paid"
+expect = { kind = "spend", amount = 15.80, paid_by = "hanz", bucket = "daily" }
+
+[[case]]
+id = "rb-uppercase"
+sender = "hanz"
+text = "MCDONALDS RM23.40 HANZ PAID"
+expect = { kind = "spend", amount = 23.40, paid_by = "hanz", bucket = "daily" }
+
+[[case]]
+id = "rb-number-in-place"
+sender = "hanz"
+text = "7eleven 6.20"
+expect = { kind = "spend", amount = 6.20, bucket = "daily" }
+
+[[case]]
+id = "rb-qty-in-text"
+sender = "vanisa"
+text = "3 cups coffee 21"
+expect = { kind = "spend", amount = 21, shares = { vanisa = 21 } }
+
+# ---- dates ----
+[[case]]
+id = "rb-yesterday-split"
+sender = "hanz"
+text = "yesterday sushi 60 split hanz paid"
+expect = { kind = "spend", amount = 60, shares = { hanz = 30, vanisa = 30 }, paid_by = "hanz", date = "yesterday" }
+
+[[case]]
+id = "rb-semalam"
+sender = "vanisa"
+text = "semalam makan 25"
+expect = { kind = "spend", amount = 25, date = "yesterday" }
+
+# ---- purpose buckets with split words ----
+[[case]]
+id = "rb-grocery-split-said"
+sender = "hanz"
+text = "lotus's groceries 150 split, hanz paid"
+expect = { kind = "spend", amount = 150, shares = { hanz = 75, vanisa = 75 }, paid_by = "hanz", bucket = "grocery" }
+
+[[case]]
+id = "rb-petrol-vanisa-paid"
+sender = "hanz"
+text = "shell petrol 70 vanisa paid"
+expect = { kind = "spend", amount = 70, shares = { hanz = 35, vanisa = 35 }, paid_by = "vanisa", bucket = "petrol" }
+
+[[case]]
+id = "rb-chuchu-food"
+sender = "vanisa"
+text = "chu chu kibble 55 i paid"
+expect = { kind = "spend", amount = 55, paid_by = "vanisa", bucket = "chuchu" }
+
+# ---- several spends in one message ----
+[[case]]
+id = "rb-multi-two"
+sender = "hanz"
+text = "lunch 12, coffee 8"
+expect = { kind = "multi", entries = [ { amount = 12 }, { amount = 8 } ] }
+
+[[case]]
+id = "rb-multi-payers"
+sender = "hanz"
+text = "Hanz paid RM20 (lunch), Vanisa paid RM9 (coffee)"
+expect = { kind = "multi", entries = [ { amount = 20, paid_by = "hanz", shares = { hanz = 20 } }, { amount = 9, paid_by = "vanisa", shares = { vanisa = 9 } } ] }
+
+[[case]]
+id = "rb-multi-one-split"
+sender = "vanisa"
+text = "dinner 60 split hanz paid, parking 5 i paid"
+expect = { kind = "multi", entries = [ { amount = 60, shares = { hanz = 30, vanisa = 30 }, paid_by = "hanz" }, { amount = 5, shares = { vanisa = 5 }, paid_by = "vanisa" } ] }
+
+[[case]]
+id = "rb-multi-lines"
+sender = "hanz"
+text = "roti 3.50\nteh tarik 2.80\nmilo 3"
+expect = { kind = "multi", entries = [ { amount = 3.50 }, { amount = 2.80 }, { amount = 3 } ] }
+
+# ---- not spends / should ask ----
+[[case]]
+id = "rb-question-price"
+sender = "vanisa"
+text = "is 30 for a haircut expensive?"
+expect = { kind = "ignore" }
+
+[[case]]
+id = "rb-split-no-amount"
+sender = "hanz"
+text = "dinner split, vanisa paid"
+expect = { kind = "ask" }
+
+[[case]]
+id = "rb-time-not-amount"
+sender = "hanz"
+text = "dinner at 8 ok?"
+expect = { kind = "ignore" }
+
+# ---- edits on an existing entry ----
+[[case]]
+id = "rb-edit-make-split"
+sender = "hanz"
+text = "#1 should be split"
+after = "colon-amount"
+expect = { kind = "edited", amount = 56.50, shares = { hanz = 28.25, vanisa = 28.25 } }
+
+[[case]]
+id = "rb-edit-payer"
+sender = "hanz"
+text = "#1 vanisa paid actually"
+after = "colon-amount"
+expect = { kind = "edited", paid_by = "vanisa" }
+
+[[case]]
+id = "rb-edit-category"
+sender = "hanz"
+text = "change #1 to leisure"
+after = "colon-amount"
+expect = { kind = "edited", category = "Leisure" }
+
+[[case]]
+id = "rb-edit-amount-of-split"
+sender = "hanz"
+text = "wrong, should be 90"
+after = "split-even"
+expect = { kind = "edited", amount = 90, shares = { hanz = 45, vanisa = 45 } }
+
+[[case]]
+id = "rb-edit-delete-number"
+sender = "hanz"
+text = "delete #1"
+after = "coffee-no-rm"
+expect = { kind = "deleted" }
+
+# ---- leading name = whose spend it is (2026-10-23: #35 was charged to Hanz) ----
+[[case]]
+id = "rb-owner-first-other-paid"
+sender = "hanz"
+text = "Vanisa , 汤圆 , RM9.90 , Hanz paid"
+expect = { kind = "spend", amount = 9.90, shares = { vanisa = 9.90 }, paid_by = "hanz" }
+
+[[case]]
+id = "rb-owner-first-self"
+sender = "hanz"
+text = "Hanz , RM15 , Yeemee"
+expect = { kind = "spend", amount = 15, shares = { hanz = 15 } }
+
+[[case]]
+id = "rb-owner-first-sent-by-other"
+sender = "vanisa"
+text = "Hanz , nasi lemak , RM7 , Vanisa paid"
+expect = { kind = "spend", amount = 7, shares = { hanz = 7 }, paid_by = "vanisa" }

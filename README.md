@@ -173,6 +173,10 @@ and in the profile's config:
 - `plugins.enabled: [duit]` to load the ledger tools
 - `platform_toolsets: {telegram: [duit], cli: [duit]}`, so the bot has the ledger tools and nothing else
 - the model: an OpenAI Codex model through the `openai-codex` provider
+- `tools.tool_search.enabled: "off"`, so the duit tools are in the prompt up front instead of being looked
+  up on every message
+- `auxiliary.title_generation.enabled: false`: the plugin starts every message in a fresh session (the bot
+  needs no chat history), so a session title would cost an extra model call per message
 
 Install and start the gateway (`hermes -p kura-kira gateway install`, then `hermes -p kura-kira gateway start`),
 post `test 1` in the group, then `undo` it.

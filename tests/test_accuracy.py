@@ -312,3 +312,86 @@ def test_plugin_applies_answer_in_code_and_reasks_on_silence(plugin, monkeypatch
     hooks["pre_gateway_dispatch"](event=Unclear())
     monkeypatch.setenv("HERMES_SESSION_MESSAGE_ID", "78")
     assert hooks["transform_llm_output"](response_text="NO_REPLY").startswith("Sorry, I didn't catch that. @Hanz #2")
+
+
+def test_plugin_log_then_edit_posts_one_block(plugin):
+    """Real bug 2026-10-23: the model logged #33 without its split, then edited it; both replies were posted."""
+    mod, hooks, tools_ = plugin
+    hooks["pre_llm_call"](user_message="Hanz paid RM27 , Coffee , split between vanisa and Hanz")
+    tools_["duit_log_spend"]({"place": "Coffee", "amount": 27, "bucket": "daily", "paid_by": "hanz",
+                              "split": "even"})
+    tools_["duit_edit_spend"]({"entry_id": 1, "category": "Food"})
+    final = hooks["transform_llm_output"](response_text="OK")
+    assert final.count("Expense") == 1 and final.startswith("✅ **Expense recorded · #1**")
+    assert "Hanz: RM13.50 · Vanisa: RM13.50" in final
+
+
+def test_plugin_retry_after_refusal_posts_only_the_ledger_reply(plugin):
+    mod, hooks, tools_ = plugin
+    hooks["pre_llm_call"](user_message="Hanz paid RM27 , Coffee , split between vanisa and Hanz")
+    assert "split" in json.loads(tools_["duit_log_spend"]({"place": "Coffee", "amount": 27, "paid_by": "hanz"}))["error"]
+    tools_["duit_log_spend"]({"place": "Coffee", "amount": 27, "paid_by": "hanz", "split": "even"})
+    final = hooks["transform_llm_output"](response_text="OK")
+    assert final.count("Expense") == 1 and not final.endswith("OK")
+
+
+def test_split_word_without_split_is_refused(tools, ledger):
+    r = tools.call("duit_log_spend", {"place": "Coffee", "amount": 27, "paid_by": "hanz"},
+                   msg("Hanz paid RM27 , Coffee , split between vanisa and Hanz"))
+    assert r["ask"] and "split" in r["error"] and not ledger.list_entries()
+    # several amounts: "split" may be about another one, so it's not second-guessed
+    r = tools.call("duit_log_spend", {"place": "lunch", "amount": 12, "part": 1}, msg("lunch 12, dinner 40 split"))
+    assert not r.get("error")
+    # shared buckets split themselves
+    r = tools.call("duit_log_spend", {"place": "Jaya Grocer", "amount": 120, "bucket": "grocery", "paid_by": "hanz"},
+                   msg("jaya grocer 120 shared hanz paid"))
+    assert not r.get("error")
+
+
+def test_first_share_copied_as_total_is_ignored(tools, ledger):
+    text = "zapfan , lunch , RM13.20 hanz , 14.50 vanisa , Hanz paid"
+    r = tools.call("duit_log_spend", {"place": "zapfan", "amount": "RM13.20", "paid_by": "hanz",
+                                      "shares": {"hanz": "RM13.20", "vanisa": "14.50"}}, msg(text))
+    assert not r.get("error")
+    assert ledger.entry(1)["total_sen"] == 2770 and ledger.entry(1)["shares"] == {"hanz": 1320, "vanisa": 1450}
+    # a total written on its own is still checked against the shares
+    r = tools.call("duit_log_spend", {"place": "zapfan", "amount": "27.70", "shares": {"hanz": 13.2, "vanisa": 12}},
+                   msg("zapfan 27.70 hanz 13.20 vanisa 12.00 hanz paid", msg_id="2"))
+    assert "add up to" in r["error"]
+
+
+def test_answer_cannot_overwrite_a_known_payer(tools, ledger):
+    tools.call("duit_log_spend", {"place": "lunch", "amount": "56.50", "paid_by": "hanz"}, msg("lunch 56.50 hanz paid"))
+    r = tools.call("duit_answer", {"entry_id": 1, "paid_by": "each"}, msg("#1 should be split", msg_id="2"))
+    assert "duit_edit_spend" in r["error"] and ledger.entry(1)["paid_by"] == "hanz"
+
+
+def test_plugin_starts_each_message_in_a_fresh_session(plugin):
+    mod, hooks, tools_ = plugin
+    calls = []
+
+    class Gateway:
+        _running_agents = {}
+
+        def _session_key_for_source(self, source):
+            return "tg:g"
+
+        def _evict_cached_agent(self, key):
+            calls.append(("evict", key))
+
+        def _clear_conversation_scope(self, key, reason):
+            calls.append(("clear", key))
+
+    class Store:
+        def reset_session(self, key):
+            calls.append(("reset", key))
+
+    class Event:
+        message_id, text, raw_message, source = "77", "lunch 12", None, object()
+
+    hooks["pre_gateway_dispatch"](event=Event(), gateway=Gateway(), session_store=Store())
+    assert calls == [("evict", "tg:g"), ("clear", "tg:g"), ("reset", "tg:g")]
+    calls.clear()
+    Gateway._running_agents = {"tg:g": object()}          # a turn is still running: leave it alone
+    hooks["pre_gateway_dispatch"](event=Event(), gateway=Gateway(), session_store=Store())
+    assert calls == []

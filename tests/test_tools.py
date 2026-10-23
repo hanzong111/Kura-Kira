@@ -107,6 +107,14 @@ def test_edit_and_undo_default_to_senders_latest(tools, ledger):
     assert [e["place"] for e in ledger.list_entries()] == ["Lunch"]
 
 
+def test_edit_split_without_amount_resplits_existing_total(tools, ledger):
+    tools.call("duit_log_spend", {"place": "Coffee", "amount": 27, "bucket": "daily", "paid_by": "hanz"}, HANZ)
+    tools.call("duit_edit_spend", {"entry_id": 1, "split": "even", "split_between": ["hanz", "vanisa"]},
+               ctx("hanz", 3))
+    e = ledger.entry(1)
+    assert e["total_sen"] == 2700 and e["shares"] == {"hanz": 1350, "vanisa": 1350}
+
+
 def test_fixed_and_settle(tools):
     r = tools.call("duit_pay_fixed", {"bills": ["house", "car"]}, HANZ)
     assert r["reply"].splitlines() == ["✅ House RM1,000.00 · Hanz · Paid for October",

@@ -133,13 +133,31 @@ def check(c: dict, led: Ledger, before_ids: set[int], reply: str, seeded: dict |
             fails.append(f"logged a new entry instead: {new[0]['place']}")
         if kind == "deleted":
             return fails + ([] if ent["deleted_at"] else ["entry not deleted"])
-        if kind == "edited":
-            return fails + ([] if ent["total_sen"] == sen(e["amount"]) else [f"amount {ent['total_sen']}"])
         target = ent
+    elif kind == "multi":
+        if len(new) != len(e["entries"]):
+            return [f"expected {len(e['entries'])} new entries, got {len(new)}"]
+        for i, (want, got) in enumerate(zip(e["entries"], sorted(new, key=lambda x: x["id"])), 1):
+            fails += [f"#{i} {f}" for f in check_entry(want, got, today)]
+        return fails + blocks(reply, len(new))
     else:  # spend
         if len(new) != 1:
             return [f"expected 1 new entry, got {len(new)}"]
         target = new[0]
+    fails += check_entry(e, target, today)
+    if e.get("asked") and "?" not in reply:
+        fails.append("should have asked a question")
+    return fails + blocks(reply, 1)
+
+
+def blocks(reply: str, want: int) -> list[str]:
+    """Each spend touched by the message is posted once: no 'recorded' and 'updated' for the same entry."""
+    got = len(re.findall(r"Expense (?:recorded|updated) · #", reply))
+    return [] if got == want else [f"{got} expense replies posted (want {want})"]
+
+
+def check_entry(e: dict, target: dict, today: date) -> list[str]:
+    fails = []
 
     if "place" in e and not (norm(e["place"]) in norm(target["place"]) or norm(target["place"]) in norm(e["place"])):
         fails.append(f"place {target['place']!r}")
@@ -160,8 +178,6 @@ def check(c: dict, led: Ledger, before_ids: set[int], reply: str, seeded: dict |
         fails.append(f"date {target['spent_on']}")
     if "needs" in e and target["needs"] != e["needs"]:
         fails.append(f"needs {target['needs']}")
-    if e.get("asked") and "?" not in reply:
-        fails.append("should have asked a question")
     return fails
 
 

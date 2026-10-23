@@ -4,7 +4,8 @@ Install by symlinking this folder into the profile's plugins dir (see README).
 
 - Tools read the sender's Telegram user ID, chat id and message id from the gateway's session context,
   so the model can't choose who a spend belongs to.
-- `pre_gateway_dispatch` keeps the message exactly as sent (text + Telegram send time) before the model
+- `pre_gateway_dispatch` starts every message in a fresh session (no chat history), and keeps the
+  message exactly as sent (text + Telegram send time) before the model
   sees it; tools check every amount against that text and date spends by when they were sent.
   (`pre_llm_call` is the fallback for one-shot runs without a gateway.)
 - `transform_llm_output` replaces the model's final text with the ledger's own reply lines for that
@@ -32,7 +33,7 @@ _lock = threading.Lock()
 _tools = None
 _KEEP = 500
 _messages: "OrderedDict[str, dict]" = OrderedDict()   # msg_id -> {"text", "sent_at"}
-_turns: "OrderedDict[str, dict]" = OrderedDict()      # msg_id -> {"lines": [...], "refused": bool}
+_turns: "OrderedDict[str, dict]" = OrderedDict()      # msg_id -> {"lines": [...], "blocks": [...], "refused": bool}
 
 
 def _remember(store: OrderedDict, key: str, value) -> None:
@@ -72,20 +73,55 @@ def _handler(name):
         ctx = _context()
         with _lock:  # one ledger write at a time
             result = _get_tools().call(name, params, ctx)
-            turn = _turns.get(ctx.msg_id) or {"lines": [], "refused": False}
+            turn = _turns.get(ctx.msg_id) or {"lines": [], "blocks": [], "refused": False}
             if result.get("error"):
                 turn["refused"] = turn["refused"] or not turn.get("answered")
             elif turn.get("answered") and name == "duit_answer":
                 pass  # code already applied this answer before the model saw the message
             elif not (result.get("duplicate") and turn["lines"]):
-                turn["lines"].extend(chat_lines(result))
+                _add_block(turn, result)
             _remember(_turns, ctx.msg_id, turn)
         return json.dumps(result, ensure_ascii=False)
     return handle
 
 
-def _on_dispatch(event=None, **_):
+def _add_block(turn: dict, result: dict) -> None:
+    """One block per entry: a later call on the same entry in this turn (log, then edit it) replaces the
+    earlier block, so the group sees the final state once. A spend logged this turn still reads 'recorded'."""
+    entry_id = result.get("entry_id")
+    lines = chat_lines(result)
+    blocks = turn.setdefault("blocks", [])
+    old = next((b for b in blocks if entry_id is not None and b[0] == entry_id), None)
+    if old is None:
+        blocks.append([entry_id, lines])
+    else:
+        if old[1] and old[1][0].startswith("✅ **Expense recorded") and lines:
+            lines[0] = lines[0].replace("✏️ **Expense updated · #", "✅ **Expense recorded · #", 1)
+        old[1] = lines
+    turn["lines"] = [ln for b in blocks for ln in b[1]]
+
+
+def _fresh_session(event, gateway, session_store) -> None:
+    """A record bot needs no chat history: each message starts a new session (a silent /new), so old
+    spends and questions can't leak into this one. A reply to the bot carries its quoted text anyway.
+    Skipped while a turn is still running for this chat, so an in-flight message is never cut off."""
+    source = getattr(event, "source", None)
+    if gateway is None or session_store is None or source is None:
+        return
+    key = gateway._session_key_for_source(source)
+    if key in getattr(gateway, "_running_agents", {}):
+        return
+    gateway._evict_cached_agent(key)
+    gateway._clear_conversation_scope(key, reason="session_reset")
+    session_store.reset_session(key)
+
+
+def _on_dispatch(event=None, gateway=None, session_store=None, **_):
     """Keep the message as the user sent it, and apply clear answers to the bot's questions in code."""
+    try:
+        _fresh_session(event, gateway, session_store)
+    except Exception:
+        pass  # never block a message over this
     try:
         msg_id = getattr(event, "message_id", None)
         if not msg_id:
@@ -127,7 +163,8 @@ def _answer_in_code(event, msg_id: str, quoted: str) -> None:
                       text=getattr(event, "text", None))
         result = tools.call("duit_answer", {"entry_id": entry_id, **args}, ctx)
         if not result.get("error"):
-            _remember(_turns, msg_id, {"lines": chat_lines(result), "refused": False, "answered": True})
+            _remember(_turns, msg_id, {"lines": chat_lines(result), "blocks": [[entry_id, chat_lines(result)]],
+                                       "refused": False, "answered": True})
 
 
 def _on_pre_llm(user_message=None, **_):
@@ -161,7 +198,7 @@ def _on_output(response_text=None, **_):
         return None  # nothing from the ledger: keep the model's words (a question)
     lines = list(turn["lines"])
     said = (response_text or "").strip()
-    if turn["refused"] and said not in ("", "NO_REPLY", "[SILENT]"):
+    if turn["refused"] and said.rstrip(".!").lower() not in ("", "no_reply", "[silent]", "ok", "done", "logged"):
         # a tool refused part of the message; keep only the model's new lines (its question about it)
         posted = {ln.strip() for ln in "\n".join(lines).splitlines()}
         lines += [ln for ln in said.splitlines() if ln.strip() and ln.strip() not in posted]
