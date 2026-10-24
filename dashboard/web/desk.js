@@ -129,23 +129,30 @@ window.kkDesk = (() => {
     const unsorted = s.unsorted ? `<button type="button" class="dk-grid dk-row" data-act="filter" data-person="${esc(view.who)}" data-bucket="unsorted">
         ${icon("receipt")}<span class="pm-name">No bucket yet<span class="pm-small pm-muted">Not in any budget until it's answered</span></span>
         <span></span><span class="dk-num">${esc(s.unsorted_fmt)}</span><span></span></button>` : "";
+    // an installment (a fixed bill that runs for set months) gets a bar for the whole plan, not just this month
+    const plans = fixedBuckets().filter((b) => s.buckets[b.key]?.installment).map((b) => {
+      const i = s.buckets[b.key].installment;
+      return `<div class="dk-grid dk-plan">${icon(BUCKET_ICON[b.key] || "receipt")}
+        <span class="pm-name">${esc(b.label)}<span class="pm-small pm-muted">Installment · ${i.done} of ${i.count} paid</span></span>
+        ${bar(i.spent, i.total, "ok", null, `${b.label} installment`)}
+        <span class="dk-num">${esc(i.spent_fmt)} / ${esc(i.total_fmt)}</span><b class="dk-num">${esc(i.left_fmt)}</b></div>`;
+    }).join("");
     const bills = fixedBuckets().filter((b) => s.buckets[b.key]).map((b) => {
       const f = s.buckets[b.key];
       const count = f.count ?? 1;
       const [cls, text] = f.paid === count || f.paid === true ? ["ok", "Paid"] : !f.paid ? ["over", "Due"] : ["ahead", `${f.paid} of ${count} paid`];
       const i = f.installment;
-      const note = i ? `${esc(i.spent_fmt)} / ${esc(i.total_fmt)} paid · ${i.done} of ${i.count} installments` : "Fixed bill";
-      return `<div class="dk-grid dk-bill">${icon(BUCKET_ICON[b.key] || "receipt")}
-        <span class="pm-name">${esc(b.label)}<span class="pm-small pm-muted">${note}</span></span>
-        <span><span class="pm-tag pm-${cls}">${text}</span></span><span class="dk-num">${esc(f.amount_fmt ?? "")}</span><span></span></div>`;
+      const tip = [b.label, f.amount_fmt, i && `${i.spent_fmt} / ${i.total_fmt} paid, ${i.done} of ${i.count} installments`, text].filter(Boolean).join(" · ");
+      return `<span class="dk-bill" title="${esc(tip)}">${icon(BUCKET_ICON[b.key] || "receipt")}<span>${esc(b.label)}</span>
+        ${f.amount_fmt ? `<b class="dk-num">${esc(f.amount_fmt)}</b>` : ""}<span class="pm-tag pm-${cls}">${text}</span></span>`;
     }).join("");
     return `<section class="pm-card dk-budgets" aria-labelledby="dk-budgets">
       <header class="dk-sec-head"><h2 id="dk-budgets" class="pm-label">Budgets this month</h2>
         ${current() ? `<span class="pm-small pm-muted dk-key"><i aria-hidden="true"></i>where you should be today (${Math.round(status.elapsed * 100)}%)</span>` : ""}</header>
       <div class="dk-scroll"><div class="dk-table-min">
         <div class="dk-grid dk-th" aria-hidden="true"><span></span><span>Bucket</span><span>Used</span><span class="dk-num">Spent / budget</span><span class="dk-num">Left</span></div>
-        ${rows}${unsorted}${bills ? `<div class="dk-bills">${bills}</div>` : ""}
-      </div></div></section>`;
+        ${rows}${unsorted}${plans}
+      </div></div>${bills ? `<div class="dk-bills"><b class="pm-small">Fixed bills</b>${bills}</div>` : ""}</section>`;
   }
 
   // ---- side column ------------------------------------------------------------------------------------
