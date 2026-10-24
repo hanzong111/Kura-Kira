@@ -1,0 +1,106 @@
+/* Desktop layout (desk.js), shown from 768px; phones get phone.css. It reuses phone.css's pm-* pieces
+   (cards, bars, tags, switch, chips) and lays them out for a wide screen: answers on top, budgets in the
+   middle, the spending log at the bottom. */
+#desk { display: none; }
+@media (min-width: 768px) {
+  #app { display: none !important; }
+  body { background: var(--du-surface); }
+  #desk { display: block; min-height: 100vh; color: var(--du-ink); font-family: var(--du-mono); font-size: 16px;
+          background: var(--du-surface); }
+}
+
+/* :where() keeps these resets at zero specificity so the component rules below win */
+:where(#desk) :where(button, input, select) { font: inherit; color: inherit; }
+:where(#desk) :where(h1, h2, h3, p, ul, ol, dl, dd) { margin: 0; }
+:where(#desk) :where(ul, ol) { list-style: none; padding: 0; }
+#desk .du-icon { width: 22px; height: 22px; flex: 0 0 22px; image-rendering: pixelated; }
+
+.dk-wrap { max-width: 1360px; margin: 0 auto; padding-left: 24px; padding-right: 24px; }
+.dk-head { background: var(--du-ink); color: var(--du-surface); border-bottom: 3px solid var(--du-coral); }
+.dk-head-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; padding-top: 14px; padding-bottom: 14px; }
+.dk-brand { display: flex; align-items: center; gap: 16px; margin-right: auto; min-width: 0; }
+.dk-logo { width: 132px; height: 40px; image-rendering: pixelated; }
+.dk-brand h1 { font-family: var(--du-pixel); font-size: 13px; font-weight: 400; line-height: 1.6; overflow-wrap: anywhere; }
+.dk-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; font-size: 14px; }
+.dk-month { display: flex; align-items: center; gap: 8px; }
+.dk-month select { height: 44px; width: 210px; border: 2px solid var(--du-surface); background: var(--du-surface-light);
+                   color: var(--du-ink); font-family: var(--du-pixel); font-size: 11px; padding: 0 8px; }
+.dk-head .pm-icon-btn { border-color: var(--du-surface); }
+.dk-head .pm-switch { min-width: 280px; border-color: var(--du-surface); background: var(--du-ink); }
+.dk-head .pm-switch button { min-height: 40px; padding: 0 12px; border-right-color: var(--du-surface); color: var(--du-surface); }
+.dk-head .pm-switch button[aria-pressed="true"] { background: var(--du-surface); color: var(--du-ink); }
+.dk-head .pm-switch .pm-dot, .dk-head .pm-switch button[aria-pressed="true"] .pm-dot { border-color: var(--du-ink); }
+
+.dk-main { display: flex; flex-direction: column; gap: 24px; padding-top: 24px; padding-bottom: 48px; }
+.dk-top { display: flex; flex-direction: column; gap: 24px; }
+.dk-main .pm-stale { font-size: 14px; padding: 10px 12px; border: 2px solid var(--du-ink); }
+.dk-main .pm-pending { font-size: 15px; padding: 14px 16px; }
+.dk-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; align-items: stretch; }
+.dk-card { padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.dk-card .pm-big { font-size: 38px; }
+.dk-right { text-align: right; }
+.dk-week { display: flex; flex-direction: column; gap: 8px; padding: 10px 0 2px; border: 0; border-top: 1px dashed var(--du-line);
+           background: transparent; text-align: left; cursor: pointer; }
+.dk-week:hover .pm-week-title { text-decoration: underline; }
+.dk-week .pm-week-title { font-size: 14px; }
+.dk-week-people { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px 20px; width: 100%; }
+.dk-week-person { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.dk-week-person .pm-bar { height: 10px; margin-top: 3px; }
+.dk-settle { box-shadow: none; }
+.dk-icon-title { display: flex; align-items: center; gap: 8px; }
+.dk-settle .dk-settle-line { font-size: 28px; line-height: 1.2; }
+
+.dk-split { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.dk-budgets { flex: 999 1 640px; min-width: 0; }
+.dk-side { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+.dk-sec-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;
+               padding: 14px 16px; border-bottom: 2px solid var(--du-ink); }
+.dk-key { display: flex; align-items: center; gap: 8px; }
+.dk-key i { display: inline-block; width: 3px; height: 16px; background: var(--du-ink); }
+.dk-scroll { overflow-x: auto; }
+.dk-table-min { min-width: 680px; }
+.dk-grid { display: grid; grid-template-columns: 24px minmax(170px, 1.3fr) minmax(160px, 2fr) minmax(150px, auto) minmax(110px, auto);
+           column-gap: 16px; align-items: center; padding: 12px 16px; width: 100%; box-sizing: border-box; }
+.dk-th { padding-top: 8px; padding-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--du-muted); background: #EFE3C4; }
+.dk-row { min-height: 60px; border: 0; border-top: 1px dashed var(--du-line); background: transparent; text-align: left; cursor: pointer; }
+.dk-row:hover { background: var(--du-surface); }
+.dk-row .pm-bar { height: 14px; }
+.dk-bills { border-top: 2px solid var(--du-ink); }
+.dk-bill { min-height: 56px; border-top: 1px dashed var(--du-line); }
+.dk-bill:first-child { border-top: 0; }
+.dk-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.dk-paid { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.dk-by summary { cursor: pointer; font-weight: 600; font-size: 14px; min-height: 32px; display: flex; align-items: center; }
+.dk-by .pm-table-box { margin-top: 6px; border: 2px solid var(--du-ink); }
+.dk-transfers { margin-top: 0; border-top: 1px dashed var(--du-line); }
+.dk-transfers li { padding: 10px 0; }
+.dk-places li { display: grid; grid-template-columns: 16px 22px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+                padding: 10px 16px; border-top: 1px dashed var(--du-line); font-size: 15px; }
+.dk-places li:first-child { border-top: 0; }
+.dk-places .pm-name { flex-direction: row; flex-wrap: wrap; gap: 0 6px; align-items: baseline; font-weight: 400; }
+
+.dk-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 2px solid var(--du-ink); }
+.dk-tools h2 { margin-right: auto; }
+.dk-tools .pm-search { flex: 0 1 280px; background: #FFFFFF; }
+.dk-select { height: 44px; border: 2px solid var(--du-ink); background: var(--du-surface-light); padding: 0 8px; font-size: 14px; max-width: 200px; }
+.dk-btn { height: 44px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border: 2px solid var(--du-ink);
+          background: var(--du-surface-light); font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.dk-btn.pm-coral { background: var(--du-coral); box-shadow: 3px 3px 0 var(--du-ink); }
+.dk-btn .du-icon { width: 18px; height: 18px; flex-basis: 18px; }
+.dk-chips { flex-wrap: wrap; overflow: visible; margin: 0; padding: 12px 16px; border-bottom: 1px dashed var(--du-line); }
+.dk-summary { padding: 12px 16px 4px; font-size: 15px; }
+.dk-table { width: 100%; min-width: 960px; border-collapse: collapse; font-size: 15px; }
+.dk-table th { background: #EFE3C4; text-align: left; font-weight: 600; font-size: 14px; padding: 10px 12px; }
+.dk-table td { padding: 11px 12px; border-top: 1px dashed var(--du-line); vertical-align: top; }
+.dk-table th:first-child, .dk-table td:first-child { padding-left: 16px; }
+.dk-table th:last-child, .dk-table td:last-child { padding-right: 16px; }
+.dk-table tbody tr:hover { background: var(--du-surface); }
+.dk-nowrap { white-space: nowrap; }
+.dk-cell-icon { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.dk-cell-icon .du-icon { width: 18px; height: 18px; flex-basis: 18px; }
+.dk-split-cell { min-width: 10em; }
+.dk-paid .pm-keys { gap: 12px 16px; }
+.dk-paid .pm-keys .pm-mid { font-size: 17px; overflow-wrap: anywhere; }
+.dk-table th { white-space: nowrap; }
+.dk-table td:nth-child(2) { min-width: 12em; }

@@ -301,6 +301,7 @@ function renderSpends(d) {
     || `<p class="du-empty">No places yet.</p>`;
   $("csv").href = `/api/spends.csv?${query()}`;
   window.kkPhone?.spends(d);
+  window.kkDesk?.spends(d);
 }
 
 // ---- loading ----------------------------------------------------------------------------------------
@@ -312,6 +313,7 @@ function markStale(err) {
     ? `Couldn't refresh (${err.message}). Showing figures from ${lastGood.toLocaleTimeString()}.`
     : `Couldn't load the ledger: ${err.message}`;
   window.kkPhone?.stale(el.textContent);
+  window.kkDesk?.stale(el.textContent);
 }
 
 async function loadStatus() {
@@ -324,6 +326,7 @@ async function loadStatus() {
   renderNeeds();
   fillFilterOptions();
   window.kkPhone?.status();
+  window.kkDesk?.status();
 }
 
 async function loadSpends() {
