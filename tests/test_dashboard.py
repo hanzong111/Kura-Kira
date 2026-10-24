@@ -172,3 +172,74 @@ def test_extra_hosts_for_a_tunnel(tmp_path, clock):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+def post(url, body, origin=None, ctype="application/json"):
+    host = url.split("/")[2]
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
+                                 headers={"Content-Type": ctype, "Origin": origin or f"http://{host}"})
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            return r.status, json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        return e.code, json.loads(e.read())
+
+
+def test_fix_a_spend_amount_updates_everything(base):
+    url, _ = base
+    before = get_json(f"{url}/api/status")
+    pav = next(r for r in get_json(f"{url}/api/spends?q=pavilion")["rows"])
+    assert post(f"{url}/api/spend", {"id": pav["id"], "total": "300"})[0] == 200
+    after = get_json(f"{url}/api/status")
+    who = next(iter(pav["shares"]))
+    spent = lambda st: st["people"][who]["buckets"]["weekend"]["spent"]  # noqa: E731
+    assert spent(before) - spent(after) == 8000
+    assert get_json(f"{url}/api/spends?q=pavilion")["rows"][0]["total_sen"] == 30000
+
+
+def test_fix_a_split_said_in_the_message(base):
+    url, _ = base
+    zap = next(r for r in get_json(f"{url}/api/spends?q=zapfan")["rows"] if r["split"])
+    assert zap["shares_given"] and zap["shares"] == {"hanz": 1320, "vanisa": 1450}
+    code, body = post(f"{url}/api/spend", {"id": zap["id"], "total": "30"})
+    assert code == 400 and "split" in body["error"]
+    bal = get_json(f"{url}/api/status")["balance"]["net"]
+    assert post(f"{url}/api/spend", {"id": zap["id"], "shares": {"hanz": "13.20", "vanisa": "16.80"}})[0] == 200
+    row = next(r for r in get_json(f"{url}/api/spends?q=zapfan")["rows"] if r["id"] == zap["id"])
+    assert (row["total_sen"], row["shares"]["vanisa"]) == (3000, 1680)
+    assert get_json(f"{url}/api/status")["balance"]["net"] != bal  # Hanz paid it: Vanisa now owes more
+    assert post(f"{url}/api/spend", {"id": zap["id"], "total": "-5"})[0] == 400
+    assert post(f"{url}/api/spend", {"id": 99999, "total": "5"})[0] == 400
+
+
+def test_change_a_budget_and_a_paid_bill(base):
+    url, _ = base
+    st = get_json(f"{url}/api/status")
+    assert st["editable"] and st["plans"]["hanz"]["toll"] == 5000
+    assert post(f"{url}/api/plan", {"bucket": "toll", "amounts": {"hanz": "60"}})[0] == 200
+    st = get_json(f"{url}/api/status")
+    assert st["people"]["hanz"]["buckets"]["toll"]["cap"] == 6000 and st["people"]["vanisa"]["buckets"]["toll"]["cap"] == 5000
+    # house is already Paid for Hanz: the paid amount follows the new bill
+    cap = st["people"]["hanz"]["goals"]["cap"]
+    assert post(f"{url}/api/plan", {"bucket": "house", "amounts": {"hanz": "900"}})[0] == 200
+    st = get_json(f"{url}/api/status")
+    house = st["people"]["hanz"]["buckets"]["house"]
+    assert (house["amount"], house["paid"]) == (90000, True)
+    assert st["people"]["hanz"]["goals"]["cap"] == cap - 10000
+    assert not get_json(f"{url}/api/status?month=2026-09")["editable"]
+    assert post(f"{url}/api/plan", {"bucket": "toll", "month": "2026-09", "amounts": {"hanz": "1"}})[0] == 400
+    assert post(f"{url}/api/plan", {"bucket": "toll", "amounts": {"hanz": "-1"}})[0] == 400
+    assert post(f"{url}/api/plan", {"bucket": "nope", "amounts": {"hanz": "1"}})[0] == 400
+
+
+def test_writes_only_from_the_dashboard_itself(base):
+    url, _ = base
+    body = {"bucket": "toll", "amounts": {"hanz": "1"}}
+    assert post(f"{url}/api/plan", body, origin="https://evil.example")[0] == 403
+    assert post(f"{url}/api/plan", body, ctype="text/plain")[0] == 403
+    req = urllib.request.Request(f"{url}/api/plan", data=json.dumps(body).encode(), method="POST",
+                                 headers={"Content-Type": "application/json"})  # no Origin
+    with pytest.raises(urllib.error.HTTPError) as e:
+        urllib.request.urlopen(req, timeout=5)
+    assert e.value.code == 403
+    assert get_json(f"{url}/api/status")["plans"]["hanz"]["toll"] == 5000

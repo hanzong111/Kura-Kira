@@ -148,3 +148,11 @@
                   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; }
 .pm-tabs button:last-child { border-right: 0; }
 .pm-tabs button[aria-current="page"] { background: var(--du-coral); font-weight: 600; }
+
+/* edit buttons (open kkEdit) */
+.pm-edit { min-height: 36px; padding: 0 12px; border: 2px solid var(--du-ink); background: var(--du-surface-light);
+           color: var(--du-ink); font-family: var(--du-mono); font-size: 13px; font-weight: 600; line-height: 1.2; }
+.pm-bills li .pm-edit { margin-left: 8px; }
+.pm-sheet-actions { display: flex; gap: 10px; }
+.pm-sheet-actions .pm-done { flex: 1; }
+.pm-sheet-actions .pm-fix { background: var(--du-surface); }

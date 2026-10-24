@@ -1,6 +1,7 @@
 // Kura-Kira dashboard in the DUIT Co-op Arcade look (duit/css/duit.css, docs/design/duit-arcade/).
-// Read-only: renders /api/status and /api/spends, refreshes on /api/events. Every number and money string
-// comes from the server (duit.ledger + duit.money.fmt); this file only lays them out.
+// Renders /api/status and /api/spends, refreshes on /api/events. Every number and money string comes from the
+// server (duit.ledger + duit.money.fmt); this file only lays them out. kkEdit (below) is the one way to change
+// anything: it posts a fixed amount to /api/spend or /api/plan and the server redoes every figure.
 "use strict";
 
 const $ = (id) => document.getElementById(id);
@@ -32,6 +33,14 @@ async function getJSON(url) {
   const body = await r.json();
   if (!r.ok) throw new Error(body.error || r.statusText);
   return body;
+}
+
+async function postJSON(url, body) {
+  const r = await fetch(url, { method: "POST", cache: "no-store", headers: { "Content-Type": "application/json" },
+                               body: JSON.stringify(body) });
+  const out = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(out.error || r.statusText);
+  return out;
 }
 
 function query(extra = {}) {
@@ -303,6 +312,94 @@ function renderSpends(d) {
   window.kkPhone?.spends(d);
   window.kkDesk?.spends(d);
 }
+
+// ---- editing amounts --------------------------------------------------------------------------------
+// One dialog for both layouts. Amounts go to the server as typed ("12.50"); it checks them, saves through the
+// same ledger calls the bot uses and the live refresh redraws budgets, bills, who paid and the balance.
+window.kkEdit = (() => {
+  const dlg = document.createElement("dialog");
+  dlg.className = "kk-edit";
+  dlg.setAttribute("aria-labelledby", "kk-edit-title");
+  document.body.append(dlg);
+  let save = null;
+  const rm = (sen) => (sen / 100).toFixed(2);
+  const field = (key, label, sen) => `<label class="kk-edit-field"><span>${esc(label)}</span>
+    <span class="kk-edit-rm">RM<input name="${esc(key)}" inputmode="decimal" autocomplete="off" required
+      pattern="\\d+(\\.\\d{1,2})?" value="${sen == null ? "" : rm(sen)}"></span></label>`;
+
+  function open(title, sub, body, note, onSave) {
+    save = onSave;
+    dlg.innerHTML = `<form method="dialog">
+      <h2 id="kk-edit-title">${esc(title)}</h2>${sub ? `<p class="kk-edit-sub">${sub}</p>` : ""}
+      <div class="kk-edit-body">${body}</div>
+      ${note ? `<p class="kk-edit-note">${note}</p>` : ""}
+      <p class="kk-edit-error" role="alert" hidden></p>
+      <div class="kk-edit-actions"><button type="button" value="cancel" data-edit="cancel">Cancel</button>
+        <button type="submit" value="save" class="kk-edit-save">Save</button></div></form>`;
+    dlg.showModal();
+    dlg.querySelector("input, select")?.focus();
+  }
+
+  dlg.addEventListener("click", (e) => {
+    if (e.target === dlg || e.target.dataset.edit === "cancel") dlg.close();
+  });
+  dlg.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target, err = form.querySelector(".kk-edit-error"), btn = form.querySelector(".kk-edit-save");
+    btn.disabled = true;
+    err.hidden = true;
+    try {
+      await save(Object.fromEntries(new FormData(form)));
+      dlg.close();
+      refresh();
+    } catch (x) {
+      err.textContent = x.message;
+      err.hidden = false;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  /** A wrong amount on one spend (a row from /api/spends). A split said in the message is edited share by share. */
+  function spend(r) {
+    const people = Object.keys(r.shares);
+    const perShare = r.shares_given && people.length > 1;
+    const body = perShare ? people.map((k) => field(k, `${name(k)}'s share`, r.shares[k])).join("")
+                          : field("total", "Amount", r.total_sen);
+    const note = perShare ? "Split as said in the message: change each share."
+      : people.length > 1 ? `Split again the usual way (${esc(r.split)} now).` : "";
+    open(`Fix ${r.place}`, `${esc(r.day)} ${esc(r.date)} · ${esc(r.bucket ? r.bucket_label : "No bucket yet")} · now ${esc(r.total_sen_fmt)}`,
+      body, `${note} Budgets, who paid and the balance follow.`,
+      (v) => postJSON("/api/spend", perShare ? { id: r.id, shares: v } : { id: r.id, total: v.total }));
+  }
+
+  /** This month's budget or bill amount for each person who has it; `key` picks the bucket first shown. */
+  function plan(key) {
+    if (!status.editable) return;
+    const buckets = status.bucket_order;
+    let cur = buckets.find((b) => b.key === key) ? key : buckets[0]?.key;
+    const fields = (k) => {
+      const b = buckets.find((x) => x.key === k);
+      const who = status.people_order.filter((p) => status.people[p].buckets[k]);
+      const unit = b.kind === "weekly" ? " per day" : b.kind === "fixed" ? " bill" : " budget";
+      const paid = who.filter((p) => status.people[p].buckets[k].paid);
+      return who.map((p) => field(p, `${name(p)}${unit}`, status.plans[p]?.[k])).join("") +
+        (b.kind === "weekly" ? `<p class="kk-edit-note">Per ${esc(b.label.toLowerCase())} day: the week's target is this × its days.</p>` : "") +
+        (paid.length ? `<p class="kk-edit-note">Already Paid for ${esc(paid.map(name).join(" & "))}: the paid amount and the balance change too.</p>` : "");
+    };
+    const pick = `<label class="kk-edit-field"><span>Bucket</span><select name="__bucket">${buckets.map((b) =>
+      `<option value="${esc(b.key)}"${b.key === cur ? " selected" : ""}>${esc(b.label)}</option>`).join("")}</select></label>`;
+    open("Change budget", `${esc(monthLabel(status.month))} · later months start from this`,
+      `${pick}<div class="kk-edit-people">${fields(cur)}</div>`, "",
+      ({ __bucket, ...amounts }) => postJSON("/api/plan", { bucket: __bucket, month: status.month, amounts }));
+    dlg.querySelector('select[name="__bucket"]').addEventListener("change", (e) => {
+      cur = e.target.value;
+      dlg.querySelector(".kk-edit-people").innerHTML = fields(cur);
+    });
+  }
+
+  return { spend, plan };
+})();
 
 // ---- loading ----------------------------------------------------------------------------------------
 let lastGood = null;

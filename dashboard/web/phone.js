@@ -1,7 +1,7 @@
 // Phone layout of the dashboard (shown at max-width 767px by phone.css; PCs keep the app.js layout).
 // It reuses app.js's data and helpers: `status`, `state`, `esc`, `icon`, `name`, `loadSpends`, `goMonth` and
-// friends, and app.js calls kkPhone.status() / .spends(d) / .stale(text) after each load. Like app.js it is
-// read-only and lays out what the server computed: no money is added up here.
+// friends, and app.js calls kkPhone.status() / .spends(d) / .stale(text) after each load. Like app.js it lays
+// out what the server computed: no money is added up here, and Edit buttons open app.js's kkEdit.
 "use strict";
 
 window.kkPhone = (() => {
@@ -121,7 +121,7 @@ window.kkPhone = (() => {
     }).join("");
     const unsorted = s.unsorted ? `<button type="button" class="pm-bucket" data-act="detail" data-bucket="unsorted">
       ${icon("receipt")}<span class="pm-name">No bucket yet</span><span class="pm-right"><b>${esc(s.unsorted_fmt)}</b></span></button>` : "";
-    return `<section aria-labelledby="pm-month"><h2 id="pm-month" class="pm-label">Budgets this month</h2>
+    return `<section aria-labelledby="pm-month"><div class="pm-row"><h2 id="pm-month" class="pm-label">Budgets this month</h2>${editBtn("", "Change amounts")}</div>
       <div class="pm-card pm-list">${rows}${unsorted}</div></section>`;
   }
 
@@ -132,11 +132,14 @@ window.kkPhone = (() => {
       const count = f.count ?? 1;
       const [cls, text] = f.paid === count || f.paid === true ? ["ok", "Paid"] : !f.paid ? ["over", "Due"] : ["ahead", `${f.paid} of ${count} paid`];
       return `<li>${icon(BUCKET_ICON[b.key] || "receipt")}<span class="pm-name">${esc(b.label)}
-        ${f.amount_fmt ? `<span class="pm-muted pm-small">${esc(f.amount_fmt)}</span>` : ""}</span><span class="pm-tag pm-${cls}">${text}</span></li>`;
+        ${f.amount_fmt ? `<span class="pm-muted pm-small">${esc(f.amount_fmt)}</span>` : ""}</span><span class="pm-tag pm-${cls}">${text}</span>${editBtn(b.key)}</li>`;
     }).join("");
     return rows ? `<section aria-labelledby="pm-bills"><h2 id="pm-bills" class="pm-label">Fixed bills</h2>
       <ul class="pm-card pm-list pm-bills">${rows}</ul></section>` : "";
   }
+
+  const editBtn = (key, label = key ? "Edit" : "Change") => (status.editable
+    ? `<button type="button" class="pm-edit" data-act="plan" data-bucket="${esc(key)}">${esc(label)}</button>` : "");
 
   const overview = () => whoSwitch() + pending() + hero() + week() + budgets() + bills();
 
@@ -165,7 +168,8 @@ window.kkPhone = (() => {
         ${eq}<p class="pm-small pm-muted">This month: ${esc(v.spent_fmt)} of ${esc(v.cap_fmt)}${b?.kind === "weekly" ? " · unspent days carry into the next week" : ""}</p>
       </section>`;
     }).join("");
-    return cards + `<section aria-labelledby="pm-dspends"><h2 id="pm-dspends" class="pm-label">Spends</h2>${spendList()}</section>`;
+    return cards + (key === "unsorted" || !status.editable ? "" : `<p class="pm-row">${editBtn(key, "Change this budget")}</p>`) +
+      `<section aria-labelledby="pm-dspends"><h2 id="pm-dspends" class="pm-label">Spends</h2>${spendList()}</section>`;
   }
 
   // ---- spends -----------------------------------------------------------------------------------------
@@ -213,8 +217,9 @@ window.kkPhone = (() => {
           <span class="pm-small pm-muted">${esc(r.day)} ${esc(r.date)}${r.item ? ` · ${esc(r.item)}` : ""}</span></div><b class="pm-mid">${esc(r.total_sen_fmt)}</b></div>
         <dl class="pm-facts">${line("Bucket", r.bucket ? r.bucket_label : "No bucket yet")}${line("Category", r.category)}${line("For", r.who)}
           ${line("Paid by", r.paid_by ? r.paid_by_label : "Not known yet")}${line("Split", r.split)}</dl>
-        <p class="pm-small pm-muted">To change it, reply to the bot in Telegram.</p>
-        <button type="button" class="pm-done" data-act="close">Done</button>
+        <p class="pm-small pm-muted">Wrong amount? Fix it here. Anything else: reply to the bot in Telegram.</p>
+        <div class="pm-sheet-actions"><button type="button" class="pm-done pm-fix" data-act="fix" data-id="${r.id}">Fix amount</button>
+          <button type="button" class="pm-done" data-act="close">Done</button></div>
       </section>`;
   }
 
@@ -282,6 +287,11 @@ window.kkPhone = (() => {
     else if (act === "close") { view.sheet = null; render(); }
     else if (act === "month" && t.dataset.month) goMonth(t.dataset.month);
     else if (act === "csv") document.getElementById("csv")?.click();
+    else if (act === "plan") kkEdit.plan(t.dataset.bucket);
+    else if (act === "fix") {
+      const r = spends?.rows.find((x) => x.id === Number(t.dataset.id));
+      if (r) { view.sheet = null; render(); kkEdit.spend(r); }
+    }
   });
   root?.addEventListener("change", (e) => { if (e.target.dataset.act === "pick-month") goMonth(e.target.value); });
   let typing = null;

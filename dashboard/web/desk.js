@@ -1,7 +1,7 @@
 // Desktop layout of the dashboard (shown from 768px by desk.css; phones get phone.js). Same contract as
 // phone.js: it reuses app.js's data and helpers (`status`, `state`, `esc`, `icon`, `name`, `loadSpends`,
 // `goMonth` and friends), app.js calls kkDesk.status() / .spends(d) / .stale(text) after each load, and
-// nothing here adds money up: every figure is one the server computed.
+// nothing here adds money up: every figure is one the server computed. Edit buttons open app.js's kkEdit.
 "use strict";
 
 window.kkDesk = (() => {
@@ -143,12 +143,15 @@ window.kkDesk = (() => {
       const [cls, text] = f.paid === count || f.paid === true ? ["ok", "Paid"] : !f.paid ? ["over", "Due"] : ["ahead", `${f.paid} of ${count} paid`];
       const i = f.installment;
       const tip = [b.label, f.amount_fmt, i && `${i.spent_fmt} / ${i.total_fmt} paid, ${i.done} of ${i.count} installments`, text].filter(Boolean).join(" · ");
-      return `<span class="dk-bill" title="${esc(tip)}">${icon(BUCKET_ICON[b.key] || "receipt")}<span>${esc(b.label)}</span>
-        ${f.amount_fmt ? `<b class="dk-num">${esc(f.amount_fmt)}</b>` : ""}<span class="pm-tag pm-${cls}">${text}</span></span>`;
+      const tag = status.editable ? "button" : "span";
+      return `<${tag}${tag === "button" ? ` type="button" data-act="plan" data-bucket="${esc(b.key)}"` : ""} class="dk-bill"
+        title="${esc(tip)}${status.editable ? " · click to change" : ""}">${icon(BUCKET_ICON[b.key] || "receipt")}<span>${esc(b.label)}</span>
+        ${f.amount_fmt ? `<b class="dk-num">${esc(f.amount_fmt)}</b>` : ""}<span class="pm-tag pm-${cls}">${text}</span></${tag}>`;
     }).join("");
     return `<section class="pm-card dk-budgets" aria-labelledby="dk-budgets">
       <header class="dk-sec-head"><h2 id="dk-budgets" class="pm-label">Budgets this month</h2>
-        ${current() ? `<span class="pm-small pm-muted dk-key"><i aria-hidden="true"></i>where you should be today (${Math.round(status.elapsed * 100)}%)</span>` : ""}</header>
+        ${current() ? `<span class="pm-small pm-muted dk-key"><i aria-hidden="true"></i>where you should be today (${Math.round(status.elapsed * 100)}%)</span>` : ""}
+        ${status.editable ? `<button type="button" class="dk-btn dk-edit-btn" data-act="plan" data-bucket="">Change amounts</button>` : ""}</header>
       <div class="dk-scroll"><div class="dk-table-min">
         <div class="dk-grid dk-th" aria-hidden="true"><span></span><span>Bucket</span><span>Used</span><span class="dk-num">Spent / budget</span><span class="dk-num">Left</span></div>
         ${rows}${unsorted}${plans}
@@ -220,14 +223,15 @@ window.kkDesk = (() => {
     return summary + `<div class="dk-scroll"><table class="dk-table">
       <thead><tr><th scope="col">Date</th><th scope="col">Place / item</th><th scope="col">Bucket</th><th scope="col">Category</th>
         <th scope="col">For</th><th scope="col">Paid by</th><th scope="col">Split</th>${share ? `<th scope="col" class="dk-num">${esc(share)}</th>` : ""}
-        <th scope="col" class="dk-num">Amount</th></tr></thead>
+        <th scope="col" class="dk-num">Amount</th><th scope="col"><span class="du-sr-only">Fix</span></th></tr></thead>
       <tbody>${spends.rows.map((r) => `<tr>
         <td class="pm-muted dk-nowrap">${esc(r.day)} ${esc(r.date)}</td>
         <td><b>${esc(r.place)}</b>${r.item ? ` <span class="pm-muted">(${esc(r.item)})</span>` : ""}</td>
         <td><span class="dk-cell-icon">${icon(BUCKET_ICON[r.bucket] || "receipt")}${r.bucket ? esc(r.bucket_label) : tag("No bucket")}</span></td>
         <td>${esc(r.category) || "—"}</td><td>${esc(r.who)}</td><td>${r.paid_by ? esc(r.paid_by_label) : tag("ask")}</td>
         <td class="pm-muted dk-split-cell">${esc(r.split) || "—"}</td>${share ? `<td class="dk-num">${esc(r.share_fmt)}</td>` : ""}
-        <td class="dk-num"><b>${esc(r.total_sen_fmt)}</b></td></tr>`).join("")}</tbody></table></div>`;
+        <td class="dk-num"><b>${esc(r.total_sen_fmt)}</b></td>
+        <td><button type="button" class="dk-fix" data-act="fix" data-id="${r.id}" aria-label="Fix the amount of ${esc(r.place)}">Edit</button></td></tr>`).join("")}</tbody></table></div>`;
   }
 
   // ---- render + events --------------------------------------------------------------------------------
@@ -288,6 +292,8 @@ window.kkDesk = (() => {
     else if (act === "chip") filter(t.dataset.person, t.dataset.bucket);
     else if (act === "month" && t.dataset.month) goMonth(t.dataset.month);
     else if (act === "csv") document.getElementById("csv")?.click();
+    else if (act === "plan") kkEdit.plan(t.dataset.bucket);
+    else if (act === "fix") { const r = spends?.rows.find((x) => x.id === Number(t.dataset.id)); if (r) kkEdit.spend(r); }
     else if (act === "clear") {
       Object.assign(state, { person: "", bucket: "", category: "", paid_by: "", q: "" });
       $d(".dk-tools").innerHTML = tools();

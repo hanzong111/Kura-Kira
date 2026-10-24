@@ -1,4 +1,4 @@
-"""Kura-Kira dashboard: a read-only web view of the ledger (stdlib only).
+"""Kura-Kira dashboard: a web view of the ledger that can also fix wrong amounts (stdlib only).
 
     python3 -m dashboard.server                       # http://127.0.0.1:8790, DUIT_DB / DUIT_CONFIG as usual
     DUIT_DB=data/demo.db python3 -m dashboard.server  # the demo month from dashboard/seed_demo.py
@@ -7,11 +7,15 @@
     GET /api/spends?month=&person=&bucket=&category=&paid_by=&q=     table rows + top places
     GET /api/spends.csv?...           the same rows as CSV
     GET /api/events                   SSE: "change" whenever the ledger file is written
+    POST /api/spend  {"id", "total"} or {"id", "shares": {person: amount}}     fix a spend's amount
+    POST /api/plan   {"bucket", "amounts": {person: amount}}     this month's budget / bill amount per person
 
 All numbers come from duit.ledger / duit.report; this file only shapes them for the page and formats money
 with duit.money.fmt. A fresh SQLite connection is opened per request (WAL lets the bot write meanwhile).
 Binds to 127.0.0.1 and rejects non-localhost Host headers (DNS-rebinding guard): the ledger is private.
 KURA_KIRA_HOSTS=a.example,b.example also accepts those names, for a tunnel that puts a login in front.
+Writes go through the same Ledger methods the bot uses (so shares, budgets, bills and the balance all follow)
+and only accept a JSON body from the dashboard's own origin: another site can't post through a logged-in tab.
 """
 
 from __future__ import annotations
@@ -33,7 +37,7 @@ from urllib.parse import parse_qs, urlparse
 from duit import config, db
 from duit.backfill import PLACE as BACKFILL_PLACE
 from duit.ledger import EACH, Ledger, LedgerError, norm_place
-from duit.money import fmt
+from duit.money import fmt, parse_amount
 from duit.periods import month_bounds, month_key
 
 WEB = Path(__file__).resolve().parent / "web"
@@ -43,6 +47,7 @@ DAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 # keys whose integer values are sen; each gets a "<key>_fmt" sibling in the JSON
 MONEY = {"cap", "spent", "left", "amount", "allowance", "target", "carry", "total", "spends", "fixed", "unknown",
          "unsorted", "outflow_plan", "total_sen", "share"}
+MAX_BODY = 4096
 CSV_COLUMNS = ["Date", "Day", "Who", "Place", "Item", "Bucket", "Category", "Amount", "Split", "Paid by"]
 
 
@@ -120,7 +125,14 @@ class App:
                                 "who": self._who(cfg, e["shares"]), "options": options,
                                 "split": self._split(cfg, e["shares"]) if len(e["shares"]) > 1 else ""})
             st["pending"] = pending
+            editable = month == month_key(today)
+            plans = {}
+            if editable:
+                for r in ledger.conn.execute("SELECT person, bucket, amount_sen FROM plans WHERE month=?", (month,)):
+                    plans.setdefault(r["person"], {})[r["bucket"]] = r["amount_sen"]
             st.update({
+                "editable": editable,
+                "plans": plans,  # sen per person per bucket (a weekly bucket's is per day); only when editable
                 "day": min(max((today - first).days + 1, 0), last.day), "days": last.day,
                 "months": self.months(ledger),
                 "people_order": list(cfg.people),
@@ -163,6 +175,7 @@ class App:
                     "paid_by_label": "?" if paid is None else ("Each paid own" if paid == EACH
                                                                else cfg.people[paid].name),
                     "needs": e["needs"],
+                    "shares": e["shares"], "shares_given": bool(e["shares_given"]),
                 }
                 if pkey:
                     row["share"] = e["shares"].get(pkey, 0)
@@ -180,6 +193,49 @@ class App:
             top = sorted(places.values(), key=lambda p: (-p["total"], p["place"]))[:6]
             return add_fmt({"month": month, "person": pkey, "rows": out, "count": len(out),
                             "total": sum(amount_of(r) for r in out), "top_places": top}, cfg.currency)
+
+    # ---- writes (POST) ------------------------------------------------------------------------------
+    def edit_spend(self, body: dict) -> dict:
+        """A wrong amount on one spend. A split that was said in the message needs every share; otherwise
+        the total is enough and the usual rule re-splits it (a shared bucket half each)."""
+        try:
+            entry_id = int(body.get("id"))
+        except (TypeError, ValueError):
+            raise LedgerError("which spend? (id missing)") from None
+        shares, total = body.get("shares"), body.get("total")
+        if shares is not None and not isinstance(shares, dict):
+            raise LedgerError("shares must be {person: amount}")
+        if shares is None and total is None:
+            raise LedgerError("give the new amount")
+        with self.ledger() as ledger:
+            e = ledger.entry(entry_id)
+            if e["deleted_at"]:
+                raise LedgerError(f"spend #{entry_id} was deleted")
+            if shares is not None:
+                r = ledger.edit(entry_id, shares={p: str(a) for p, a in shares.items()})
+            else:
+                r = ledger.edit(entry_id, total=str(total))
+            return add_fmt({"id": r["id"], "total": r["total_sen"], "shares": r["shares"]}, ledger.cfg.currency)
+
+    def set_plan(self, body: dict) -> dict:
+        """This month's amount for one bucket, per person (a weekly bucket's is per day). Later months copy it."""
+        amounts = body.get("amounts")
+        if not isinstance(amounts, dict) or not amounts:
+            raise LedgerError("amounts must be {person: amount}")
+        with self.ledger() as ledger:
+            month = month_key(ledger.today())
+            if body.get("month") not in (None, "", month):
+                raise LedgerError("only this month's budgets can be changed")
+            bucket = body.get("bucket") or ""
+            if bucket not in ledger.cfg.buckets_in(month):
+                raise LedgerError(f"unknown bucket {bucket!r}")
+            people = {ledger.cfg.person(p).key: str(a) for p, a in amounts.items()}
+            for a in people.values():  # check every amount before changing any
+                if parse_amount(a) < 0:
+                    raise LedgerError("an amount can't be negative")
+            for p, a in people.items():
+                ledger.set_plan(bucket, a, p, month)
+            return {"month": month, "bucket": bucket, "people": list(people)}
 
     def spends_csv(self, params: dict) -> tuple[str, str]:
         data = self.spends(params)
@@ -249,6 +305,33 @@ def make_handler(app: App):
             except (LedgerError, ValueError) as e:
                 return self.send_json({"error": str(e)}, 400)
             return self.static(u.path)
+
+        def write_ok(self) -> bool:
+            """Same-origin JSON only: a form or script on another site can't send this with the login cookie."""
+            origin = urlparse(self.headers.get("Origin") or "").netloc.lower()
+            return (bool(origin) and origin == (self.headers.get("Host") or "").lower()
+                    and (self.headers.get("Content-Type") or "").startswith("application/json"))
+
+        def do_POST(self):
+            if not self.host_ok():
+                return self.send_json({"error": "forbidden host"}, 403)
+            if not self.write_ok():
+                return self.send_json({"error": "forbidden origin"}, 403)
+            u = urlparse(self.path)
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+                if not 0 < n <= MAX_BODY:
+                    raise ValueError("bad body size")
+                body = json.loads(self.rfile.read(n))
+                if not isinstance(body, dict):
+                    raise ValueError("body must be a JSON object")
+                if u.path == "/api/spend":
+                    return self.send_json(app.edit_spend(body))
+                if u.path == "/api/plan":
+                    return self.send_json(app.set_plan(body))
+            except (LedgerError, ValueError) as e:
+                return self.send_json({"error": str(e)}, 400)
+            return self.send_json({"error": "not found"}, 404)
 
         def static(self, path: str):
             rel = "index.html" if path in ("", "/") else path.lstrip("/")

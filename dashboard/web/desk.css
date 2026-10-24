@@ -108,3 +108,11 @@
 .dk-table td:nth-child(2) { min-width: 12em; }
 .dk-plan { min-height: 60px; border-top: 1px dashed var(--du-line); }
 .dk-plan .pm-bar { height: 14px; }
+
+/* edit buttons (open kkEdit) */
+.dk-sec-head .dk-edit-btn { height: 36px; margin-left: auto; font-size: 14px; }
+button.dk-bill { font: inherit; color: inherit; cursor: pointer; }
+button.dk-bill:hover { background: var(--du-surface-light); }
+.dk-fix { min-height: 32px; padding: 0 10px; border: 2px solid var(--du-ink); background: var(--du-surface-light);
+          font-size: 13px; font-weight: 600; cursor: pointer; }
+.dk-fix:hover { background: var(--du-yellow); }
