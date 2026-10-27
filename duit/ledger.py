@@ -21,6 +21,9 @@ from .money import parse_amount, split_even
 from .periods import month_bounds, month_key, prev_month
 
 EACH = "each"  # paid_by value: everyone paid their own share
+# A redelivered message comes back within minutes. Telegram message ids are per bot in a basic group and
+# restart when the bot token changes, so an id seen longer ago than this belongs to a different message.
+DUP_WINDOW = timedelta(days=1)
 
 
 class LedgerError(ValueError):
@@ -51,6 +54,17 @@ class Ledger:
 
     def _stamp(self) -> str:
         return self.now().isoformat(timespec="seconds")
+
+    def _duplicate(self, table: str, chat_id, msg_id) -> sqlite3.Row | None:
+        """The row already recorded for this chat message. Backfill keys are permanent; message ids expire:
+        an older row holding the id is retired (msg_id -> 'id~row') so the new message can take it."""
+        row = self.conn.execute(f"SELECT id, created_at FROM {table} WHERE chat_id=? AND msg_id=?",
+                                (str(chat_id), str(msg_id))).fetchone()
+        since = (self.now() - DUP_WINDOW).isoformat(timespec="seconds")
+        if row is None or chat_id == "backfill" or row["created_at"] >= since:
+            return row
+        self.conn.execute(f"UPDATE {table} SET msg_id=? WHERE id=?", (f"{msg_id}~{row['id']}", row["id"]))
+        return None
 
     @contextmanager
     def _tx(self):
@@ -260,8 +274,7 @@ class Ledger:
         if not place:
             raise LedgerError("place/item is required")
         if chat_id is not None and msg_id is not None:
-            dup = self.conn.execute("SELECT id FROM entries WHERE chat_id=? AND msg_id=?",
-                                    (str(chat_id), str(msg_id))).fetchone()
+            dup = self._duplicate("entries", chat_id, msg_id)
             if dup:
                 return {**self.entry(dup["id"]), "duplicate": True}
 
@@ -492,8 +505,7 @@ class Ledger:
         if a == b:
             raise LedgerError("settle-up needs two different people")
         if chat_id is not None and msg_id is not None:
-            dup = self.conn.execute("SELECT id FROM settlements WHERE chat_id=? AND msg_id=?",
-                                    (str(chat_id), str(msg_id))).fetchone()
+            dup = self._duplicate("settlements", chat_id, msg_id)
             if dup:
                 return {"id": dup["id"], "duplicate": True, "balance": report.balance(self.conn, self.cfg)}
         if amount is None:

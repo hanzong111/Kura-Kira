@@ -98,6 +98,17 @@ def test_duplicate_message_is_logged_once(ledger):
     assert len(ledger.list_entries()) == 1
 
 
+def test_old_message_id_is_not_a_duplicate(ledger, clock):
+    """Telegram restarts message ids when the bot token changes, so an old id is a new message."""
+    a = ledger.log_spend(sender="hanz", place="Lunch", total=12, bucket="daily", chat_id="g", msg_id="8")
+    s = ledger.settle(from_person="vanisa", to_person="hanz", amount=5, chat_id="g", msg_id="9")
+    clock.set("2026-10-19T13:00")
+    b = ledger.log_spend(sender="hanz", place="Garlic", total=4, bucket="grocery", chat_id="g", msg_id="8")
+    t = ledger.settle(from_person="vanisa", to_person="hanz", amount=5, chat_id="g", msg_id="9")
+    assert not b["duplicate"] and b["id"] != a["id"]
+    assert not t["duplicate"] and t["id"] != s["id"]
+
+
 def test_fixed_bills_cannot_be_logged_as_spends(ledger):
     with pytest.raises(LedgerError, match="fixed bill"):
         ledger.log_spend(sender="hanz", place="rent", total=1000, bucket="house")
