@@ -81,7 +81,7 @@ flowchart LR
     T --> L[("Ledger<br/>SQLite, integer sen")]
     L --> R["Reply text (code)<br/>totals · left · questions"]
     R --> G
-    L --> D["Dashboard<br/>read-only web page"]
+    L --> D["Dashboard<br/>web page, can fix amounts"]
 ```
 
 - **The model reads; code counts.** The agent turns a message into a tool call: place, amount, how it was
@@ -314,16 +314,22 @@ runs in a fresh ledger through the real agent.
 
 <img src="docs/images/dashboard-phone.png" alt="The dashboard on a phone (demo data)" width="230" align="right">
 
-A read-only page on `http://localhost:8790` that updates live as the bot writes to the ledger.
+A page on `http://localhost:8790` that updates live as the bot writes to the ledger. It has two
+layouts drawn from the same data: a desktop layout from 768px wide and a phone layout below that.
 
-- **Combined:** both of you together. A goals bar with a month-elapsed marker, one bar per bucket,
-  House and Car as PAID / DUE tags, who paid what, and who owes whom.
-- **Hanz (P1) and Vanisa (P2):** this week's Weekday and Weekend bars with *target ± carry-over = can spend*,
-  then the month's buckets, bills and anything Unsorted.
-- **Needs answer:** the questions still waiting in the group.
-- **Spending log:** filter by month, person, bucket, category, payer or text. Filtered to one person, it
-  shows their share. Top places, and an Export CSV button. Click any bar to filter the log to that bucket.
-- **On a phone:** the cards stack and every spend becomes a card. No sideways scrolling.
+- **Desktop:** the answers come first: money left this month (with a marker for where the month should
+  be), what each person can spend this week, and who owes whom. Below them is one budgets table, with
+  installments as rows whose bar shows the whole plan (paid so far against the total, months paid), and
+  fixed bills as a row of badges with their paid state. A side column shows who paid and the top places,
+  then the spending log with search, filter chips, category and payer selects and an Export CSV button.
+  A Both/person switch in the header filters everything, including the log.
+- **Phone:** an overview with a household or per-person switch, a bucket detail with that week's target
+  and spends, a searchable spends list with a detail sheet, and a who-paid tab that leads with settling
+  up. Inside Telegram the detail views use the Telegram back button.
+- **Fixing things:** an Edit button on a spend fixes its amount (a split said in the message is edited
+  share by share; otherwise the total is re-split by the usual rule). "Change amounts" on the budgets
+  table, or clicking a fixed bill, sets this month's amount per person (per day for weekday/weekend).
+  Past months stay as they were; later months copy the new amount when they start.
 
 Try it with a demo month:
 
@@ -332,10 +338,13 @@ python3 -m dashboard.seed_demo                     # builds data/demo.db
 DUIT_DB=data/demo.db python3 -m dashboard.server   # http://localhost:8790
 ```
 
-The server uses only the Python standard library. It never edits spends: it opens a fresh connection per
-request (so the bot can keep writing) and reports changes over server-sent events (`/api/events`).
-JSON endpoints: `/api/status?month=YYYY-MM`, `/api/spends?month=&person=&bucket=&category=&paid_by=&q=`, and
-`/api/spends.csv` with the same filters.
+The server uses only the Python standard library. It opens a fresh connection per request (so the bot
+can keep writing) and reports changes over server-sent events (`/api/events`). Read endpoints:
+`/api/status?month=YYYY-MM`, `/api/spends?month=&person=&bucket=&category=&paid_by=&q=`, and
+`/api/spends.csv` with the same filters. Write endpoints: `POST /api/spend` (fix a spend's amount) and
+`POST /api/plan` (set a budget or bill for this month). They call the same ledger methods as the bot, so
+shares, totals and the balance follow on their own, and they only accept a JSON body whose `Origin`
+matches the `Host`, so another site can't post through a tab that's logged in behind the tunnel.
 
 The look is the **DUIT Co-op Arcade** pack: sprites, skyline, pixel icons and self-hosted fonts in
 `dashboard/web/duit/`. Its design handoff, reference mockup and source art are in
@@ -362,7 +371,7 @@ hermes/
   plugin/duit/           Hermes plugin: the tools (toolset `duit`) and gateway hooks
   SOUL.md                the agent's rules
 dashboard/
-  server.py              read-only web server + SSE
+  server.py              web server, edit endpoints + SSE
   seed_demo.py           a demo month in data/demo.db
   web/                   index.html, app.js, app.css; duit/ = the arcade asset pack
   kura-kira-dashboard.service, install-service.sh
@@ -417,8 +426,9 @@ for reading, to the model provider behind Hermes. The dashboard doesn't send any
   with the message that caused it, and `data/backups/` keeps 30 nightly copies.
 - **What leaves the machine.** Group messages are read by Telegram and by the model provider that Hermes uses.
   Code computes the numbers in the bot's replies; the model only chooses which tool to call.
-- **The dashboard is read-only and has no login.** It listens on `127.0.0.1` only and refuses other host names.
-  Put a login in front of it (Tailscale, or an ngrok tunnel with OAuth) before opening it to your phone.
+- **The dashboard has no login and can change amounts.** It listens on `127.0.0.1` only, refuses other host
+  names, and only accepts writes whose `Origin` matches the `Host`. Anyone who can open it can fix spends and
+  budgets, so put a login in front of it (Tailscale, or an ngrok tunnel with OAuth) before opening it to your phone.
 
 ## Credits
 
