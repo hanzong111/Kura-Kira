@@ -33,11 +33,16 @@
   </tr>
 </table>
 
-<p align="center"><sub>The dashboard Mini App from Kura-Kira Server, the hosted version of this bot. Sample data, made-up names.</sub></p>
+<p align="center"><sub>The dashboard Mini App from Kura-Kira Server, the hosted version that grew out of this repo. Sample data, made-up names.</sub></p>
 
 > [!NOTE]
-> This is a personal project, built around one couple's plan (Hanz and Vanisa, plus Chu Chu the cat). The people,
-> budgets and buckets all live in `config.toml`, so you can change them, but the dashboard is designed for two.
+> **This is the open-source version of Kura-Kira Server: Kura-Kira v1, built as a Hermes Agent bot.**
+> Kura-Kira Server is the hosted version: one Telegram bot for any number of households, with home and
+> business books, a dashboard Mini App (the screenshots above), PostgreSQL and Redis. This repo is where it
+> started: one couple's plan (Hanz and Vanisa, plus Chu Chu the cat) run by a
+> [Hermes Agent](https://github.com/NousResearch/hermes-agent) profile, with a SQLite ledger, a `config.toml`
+> and a pixel-art dashboard you host yourself. The people, budgets and buckets can all be changed in
+> `config.toml`, but the dashboard is designed for two.
 
 Kura-Kira is a [Hermes Agent](https://github.com/NousResearch/hermes-agent) bot that sits in a Telegram
 group. Whenever one of you spends money, you post it the way you'd tell each other: `Sushi-Mentai 56.50`,
@@ -82,7 +87,7 @@ Chat that isn't about money ("where to eat?", "reach in 10 min") gets no reply a
   <img src="docs/images/app-desktop.png" alt="The Kura-Kira Server dashboard on a desktop browser, showing a business book's profit, costs budget, top cost buckets and sales" width="820">
 </p>
 
-<p align="center"><sub>The same Kura-Kira Server dashboard on a wider screen. Sample data, made-up names.</sub></p>
+<p align="center"><sub>The same Kura-Kira Server dashboard on a wider screen. This repo's own dashboard is shown under <a href="#dashboard">Dashboard</a>. Sample data, made-up names.</sub></p>
 
 ## How it works
 
