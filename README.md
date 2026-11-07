@@ -24,9 +24,16 @@
   <a href="#faq">FAQ</a>
 </p>
 
-<p align="center">
-  <img src="docs/images/dashboard-desktop.png" alt="The Kura-Kira dashboard: combined budget, Hanz and Vanisa's cards, a needs-answer box and the spending log (demo data)" width="820">
-</p>
+<table align="center">
+  <tr>
+    <td align="center" valign="top"><img src="docs/images/app-all-books.png" alt="All books: money in, money out and what's left across a home book and a business" width="190"><br><sub><b>All your books</b></sub></td>
+    <td align="center" valign="top"><img src="docs/images/app-business-home.png" alt="A business book: profit, sales, costs and margin for the month" width="190"><br><sub><b>A business book</b></sub></td>
+    <td align="center" valign="top"><img src="docs/images/app-budgets.png" alt="Budgets: each cost bucket against its budget, with one over budget and a fixed bill marked paid" width="190"><br><sub><b>Budgets and bills</b></sub></td>
+    <td align="center" valign="top"><img src="docs/images/app-activity.png" alt="Activity: spends and sales by day across every book, with search" width="190"><br><sub><b>Activity</b></sub></td>
+  </tr>
+</table>
+
+<p align="center"><sub>The dashboard Mini App from Kura-Kira Server, the hosted version of this bot. Sample data, made-up names.</sub></p>
 
 > [!NOTE]
 > This is a personal project, built around one couple's plan (Hanz and Vanisa, plus Chu Chu the cat). The people,
@@ -70,6 +77,12 @@ From the second week of a month, savings and overspending carry over:
 ```
 
 Chat that isn't about money ("where to eat?", "reach in 10 min") gets no reply at all.
+
+<p align="center">
+  <img src="docs/images/app-desktop.png" alt="The Kura-Kira Server dashboard on a desktop browser, showing a business book's profit, costs budget, top cost buckets and sales" width="820">
+</p>
+
+<p align="center"><sub>The same Kura-Kira Server dashboard on a wider screen. Sample data, made-up names.</sub></p>
 
 ## How it works
 
